@@ -116,21 +116,32 @@ Sau khi login, Claude Code lưu credentials tại `~/.claude/` - cron job sẽ t
 
 ### Bước 1: Cấu hình Environment
 
+⚠️ **Có 2 file .env riêng biệt:**
+
+| File | Dùng bởi | Biến |
+|------|----------|------|
+| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
+
+**1a. Telegram .env (project root):**
 ```bash
 cp .env.example .env
 nano .env
 ```
 
 ```bash
-# === TELEGRAM ===
 TELEGRAM_BOT_TOKEN=123456:ABC...      # Token từ @BotFather
 TELEGRAM_CHAT_ID=123456789            # Chat ID cho error notifications
 TELEGRAM_GROUP_CHAT_ID=-100123456789  # Group ID cho daily report
 TELEGRAM_GROUP_THREAD_ID=123          # Thread ID trong group (nếu có)
+```
 
-# === JIRA ===
+**1b. Jira .env (skill folder):**
+```bash
+cat > ~/.claude/skills/jira-self-hosted/.env << EOF
 JIRA_DOMAIN=https://your-jira.com
 JIRA_PAT=your_personal_access_token
+EOF
 ```
 
 ### Bước 2: Lấy Telegram IDs
@@ -154,7 +165,7 @@ JIRA_PAT=your_personal_access_token
 
 ```bash
 cp -r skills/jira-self-hosted ~/.claude/skills/
-cp .env ~/.claude/skills/jira-self-hosted/.env
+# Jira .env đã tạo ở Bước 1b
 ```
 
 ### Bước 4: Test
@@ -334,21 +345,32 @@ claude --version
 
 ### Step 1: Configure Environment
 
+⚠️ **There are 2 separate .env files:**
+
+| File | Used by | Variables |
+|------|---------|-----------|
+| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
+
+**1a. Telegram .env (project root):**
 ```bash
 cp .env.example .env
 nano .env
 ```
 
 ```bash
-# === TELEGRAM ===
 TELEGRAM_BOT_TOKEN=123456:ABC...
 TELEGRAM_CHAT_ID=123456789            # For errors
 TELEGRAM_GROUP_CHAT_ID=-100123456789  # For success
 TELEGRAM_GROUP_THREAD_ID=123          # Thread ID (optional)
+```
 
-# === JIRA ===
+**1b. Jira .env (skill folder):**
+```bash
+cat > ~/.claude/skills/jira-self-hosted/.env << EOF
 JIRA_DOMAIN=https://your-jira.com
 JIRA_PAT=your_personal_access_token
+EOF
 ```
 
 ### Step 2: Get Telegram IDs
@@ -367,7 +389,7 @@ JIRA_PAT=your_personal_access_token
 
 ```bash
 cp -r skills/jira-self-hosted ~/.claude/skills/
-cp .env ~/.claude/skills/jira-self-hosted/.env
+# Jira .env already created in Step 1b
 ```
 
 ### Step 4: Test
