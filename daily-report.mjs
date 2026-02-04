@@ -19,6 +19,16 @@ const EXCLUDED_USERS = [
   // Thêm tên user cần bỏ qua ở đây
 ];
 
+// Workflow statuses trong Jira của bạn
+// Chỉnh sửa nếu Jira của bạn dùng tên khác
+const JIRA_STATUSES = {
+  done: "Done",           // Hoàn thành
+  resolved: "Resolved",   // Dev xong, chờ QC
+  testing: "Testing",     // QC đang test
+  inProgress: "In Progress", // Đang làm
+  toDo: "To Do",          // Chưa làm
+};
+
 // ============================================================
 // TELEGRAM CONFIG (từ .env)
 // ============================================================

@@ -6,6 +6,28 @@
 
 ---
 
+> ⚠️ **LƯU Ý QUAN TRỌNG**
+>
+> Workflow và cấu hình trong repo này dựa trên mô hình hoạt động cụ thể của tác giả. **Bạn cần tự điều chỉnh lại** các thiết lập sau cho phù hợp với team của mình:
+> - Danh sách projects (`JIRA_PROJECTS`)
+> - Tên các trạng thái workflow (`JIRA_STATUSES`)
+> - Danh sách users cần loại trừ (`EXCLUDED_USERS`)
+> - Format báo cáo (`DAILY_PROMPT`)
+>
+> Xem phần **"Tùy chỉnh cấu hình"** để biết chi tiết.
+
+> ⚠️ **IMPORTANT NOTE**
+>
+> The workflow and configuration in this repo are based on the author's specific setup. **You need to customize** the following settings to match your team's workflow:
+> - Project list (`JIRA_PROJECTS`)
+> - Workflow status names (`JIRA_STATUSES`)
+> - Excluded users list (`EXCLUDED_USERS`)
+> - Report format (`DAILY_PROMPT`)
+>
+> See **"Tùy chỉnh cấu hình"** section for details.
+
+---
+
 ## Phần 1: Sử dụng với Claude CLI (Interactive)
 
 ### Yêu cầu
@@ -190,6 +212,26 @@ const EXCLUDED_USERS = [
 | `JIRA_PROJECTS` | Mảng các project key cần theo dõi |
 | `MAIN_PROJECT` | Project dùng để query danh sách team members |
 | `EXCLUDED_USERS` | Users không tính (bot, automation, manager...)|
+| `JIRA_STATUSES` | Mapping tên status trong Jira của bạn |
+
+### Workflow Statuses
+
+```javascript
+const JIRA_STATUSES = {
+  done: "Done",           // Hoàn thành
+  resolved: "Resolved",   // Dev xong, chờ QC
+  testing: "Testing",     // QC đang test
+  inProgress: "In Progress", // Đang làm
+  toDo: "To Do",          // Chưa làm
+};
+```
+
+**Workflow chuẩn:**
+```
+To Do → In Progress → Resolved → Testing → Done
+```
+
+⚠️ **Lưu ý:** Nếu Jira của bạn dùng tên status khác (ví dụ: "QA Testing" thay vì "Testing"), hãy chỉnh `JIRA_STATUSES` cho phù hợp.
 
 ### Tùy chỉnh Prompt
 
