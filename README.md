@@ -18,6 +18,31 @@
 
 ---
 
+## Cấu hình Workflow Logic (Bug/Reopen Detection)
+
+Claude hiểu workflow thông qua **2 file**:
+
+| File | Mục đích |
+|------|----------|
+| `skills/jira-self-hosted/SKILL.md` | Định nghĩa logic detect Bug, QC Reject, Reopen |
+| `daily-report.mjs` → `DAILY_PROMPT` | Hướng dẫn cách format output |
+
+**Để thay đổi cách detect Bug/Reopen:**
+
+1. Mở `skills/jira-self-hosted/SKILL.md`
+2. Tìm section `## Defect Detection Logic`
+3. Chỉnh sửa định nghĩa theo workflow của bạn
+
+Ví dụ thêm Reopen logic:
+```markdown
+### Reopen Definition
+- Issue chuyển từ Done → bất kỳ status nào khác = Reopen
+```
+
+Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
+
+---
+
 ## Phần 1: Sử dụng với Claude CLI (Interactive)
 
 ### Yêu cầu
@@ -222,29 +247,6 @@ To Do → In Progress → Resolved → Testing → Done
 ```
 
 ⚠️ **Lưu ý:** Nếu Jira của bạn dùng tên status khác (ví dụ: "QA Testing" thay vì "Testing"), hãy chỉnh `JIRA_STATUSES` cho phù hợp.
-
-### Cấu hình Workflow Logic (Bug/Reopen Detection)
-
-Claude hiểu workflow thông qua **2 file**:
-
-| File | Mục đích |
-|------|----------|
-| `skills/jira-self-hosted/SKILL.md` | Định nghĩa logic detect Bug, QC Reject, Reopen |
-| `daily-report.mjs` → `DAILY_PROMPT` | Hướng dẫn cách format output |
-
-**Để thay đổi cách detect Bug/Reopen:**
-
-1. Mở `skills/jira-self-hosted/SKILL.md`
-2. Tìm section `## Defect Detection Logic`
-3. Chỉnh sửa định nghĩa theo workflow của bạn
-
-Ví dụ thêm Reopen logic:
-```markdown
-### Reopen Definition
-- Issue chuyển từ Done → bất kỳ status nào khác = Reopen
-```
-
-Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
 
 ### Tùy chỉnh Prompt
 
