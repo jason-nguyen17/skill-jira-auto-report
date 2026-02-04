@@ -6,18 +6,6 @@
 
 ---
 
-> ⚠️ **LƯU Ý QUAN TRỌNG**
->
-> Workflow và cấu hình trong repo này dựa trên mô hình hoạt động cụ thể của tác giả. **Bạn cần tự điều chỉnh lại** các thiết lập sau cho phù hợp với team của mình:
-> - Danh sách projects (`JIRA_PROJECTS`)
-> - Tên các trạng thái workflow (`JIRA_STATUSES`)
-> - Danh sách users cần loại trừ (`EXCLUDED_USERS`)
-> - Format báo cáo (`DAILY_PROMPT`)
->
-> Xem phần **"Tùy chỉnh cấu hình"** để biết chi tiết.
-
----
-
 ## Cấu hình Workflow Logic (Bug/Reopen Detection)
 
 Claude hiểu workflow thông qua **2 file**:
