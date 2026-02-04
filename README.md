@@ -1,97 +1,168 @@
-# jira-daily-digest
+# skill-jira-auto-report
 
-🤖 Jira daily report bot powered by Claude Code - auto-generates team activity digest and sends to Telegram.
+🤖 Claude Code skill để tạo báo cáo Jira tự động và gửi qua Telegram.
 
-## Features
+**Chỉ hỗ trợ Jira Server/Data Center** (Self-Hosted) với PAT authentication.
 
-- Query Jira Server/Data Center via REST API
-- Generate daily team activity reports
-- Track: Done, Resolved, Testing, In Progress
-- Detect inactive team members
-- Send reports to Telegram (group thread for success, private chat for errors)
-- Retry logic (3 attempts with 60s delay)
+---
 
-## Architecture
+## Phần 1: Sử dụng với Claude CLI (Interactive)
+
+### Yêu cầu
+- [Claude Code CLI](https://github.com/anthropics/claude-code) đã cài đặt và authenticate
+- Jira Server/Data Center v8.14.0+ (hỗ trợ PAT)
+
+### Cài đặt Skill
+
+```bash
+# Copy skill vào thư mục Claude
+cp -r skills/jira-self-hosted ~/.claude/skills/
+
+# Tạo file .env cho Jira
+cat > ~/.claude/skills/jira-self-hosted/.env << EOF
+JIRA_DOMAIN=https://your-jira-instance.com
+JIRA_PAT=your_personal_access_token
+EOF
+
+# Test kết nối
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+```
+
+### Lấy Jira PAT
+
+1. Đăng nhập Jira → Profile → Personal Access Tokens
+2. Create token → Copy token
+3. Thêm vào `.env`
+
+### Cách Prompt
+
+Trong Claude CLI, bạn có thể prompt:
 
 ```
-┌─────────────────────────┬───────────────────────────────┐
-│   daily-report.mjs      │   jira-self-hosted skill      │
-│   (Runner/Sender)       │   (Data Provider)             │
-├─────────────────────────┼───────────────────────────────┤
-│ • Spawn Claude Code CLI │ • Query Jira REST API v2      │
-│ • Define report prompt  │ • JQL search                  │
-│ • Retry logic (3x)      │ • PAT authentication          │
-│ • Send via Telegram API │ • Get team members/issues     │
-└─────────────────────────┴───────────────────────────────┘
+Daily report Jira hôm qua.
+Projects: PSV2, DIC, DEPOT
+
+Dùng jira-self-hosted skill để:
+1. Query issues updated hôm qua
+2. Group theo status: Done, Resolved, Testing, In Progress
+3. List theo người
 ```
 
-## Prerequisites
+Hoặc đơn giản:
 
+```
+/jira-self-hosted
+
+Tổng hợp hoạt động team hôm qua cho projects PSV2, DIC
+```
+
+### Tham khảo
+
+- `skills/jira-self-hosted/references/jql-guide.md` - Cú pháp JQL
+- `skills/jira-self-hosted/references/api-reference.md` - API endpoints
+
+---
+
+## Phần 2: Chạy tự động với Cron
+
+Chuyển đổi thành script chạy định kỳ, gửi report qua Telegram.
+
+### Yêu cầu thêm
 - Node.js 18+
-- [Claude Code CLI](https://github.com/anthropics/claude-code) installed
-- Jira Server/Data Center with PAT support (v8.14.0+)
 - Telegram Bot
 
-## Setup
+### Bước 1: Cấu hình Environment
 
-1. Clone and configure:
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
+nano .env
 ```
 
-2. Install Claude Code skill:
+```bash
+# === TELEGRAM ===
+TELEGRAM_BOT_TOKEN=123456:ABC...      # Token từ @BotFather
+TELEGRAM_CHAT_ID=123456789            # Chat ID cho error notifications
+TELEGRAM_GROUP_CHAT_ID=-100123456789  # Group ID cho daily report
+TELEGRAM_GROUP_THREAD_ID=123          # Thread ID trong group (nếu có)
+
+# === JIRA ===
+JIRA_DOMAIN=https://your-jira.com
+JIRA_PAT=your_personal_access_token
+```
+
+### Bước 2: Lấy Telegram IDs
+
+**Bot Token:**
+1. Chat với @BotFather → `/newbot` → copy token
+
+**Chat ID (private):**
+1. Chat với @userinfobot → Copy "Id"
+
+**Group Chat ID:**
+1. Thêm bot vào group
+2. Gửi message trong group
+3. Truy cập: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+4. Tìm `"chat":{"id":-100...}`
+
+**Thread ID (nếu dùng Topics):**
+- Trong response `getUpdates`, tìm `"message_thread_id"`
+
+### Bước 3: Cài đặt Skill
+
 ```bash
 cp -r skills/jira-self-hosted ~/.claude/skills/
+cp .env ~/.claude/skills/jira-self-hosted/.env
 ```
 
-3. Test connection:
-```bash
-./skills/jira-self-hosted/scripts/jira-auth-test.sh
-```
+### Bước 4: Test
 
-4. Run manually:
 ```bash
+# Test Jira
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+
+# Test report
 ./run-daily-report.sh
 ```
 
-5. Setup cron (8am daily, UTC):
+### Bước 5: Setup Cron
+
 ```bash
 crontab -e
-# Add: 0 1 * * * /path/to/jira-daily-digest/run-daily-report.sh >> /path/to/daily-report.log 2>&1
 ```
 
-## Environment Variables
+Thêm (8h sáng Vietnam = 1h UTC):
 
-| Variable | Description |
-|----------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Private chat for error notifications |
-| `TELEGRAM_GROUP_CHAT_ID` | Group chat for success reports |
-| `TELEGRAM_GROUP_THREAD_ID` | Thread ID in group |
-| `JIRA_DOMAIN` | Jira instance URL |
-| `JIRA_PAT` | Personal Access Token |
-
-## Report Format
-
+```cron
+0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
 ```
-📊 BÁO CÁO JIRA - [date]
 
-TỔNG QUAN
-✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
+### Cấu trúc
 
-THEO NGƯỜI
-👤 Name: ✅X 📋X 🧪X 🔄X
+| File | Mô tả |
+|------|-------|
+| `run-daily-report.sh` | Load .env, retry 3x, gọi Node |
+| `daily-report.mjs` | Spawn Claude CLI, gửi Telegram |
 
-CHI TIẾT DONE/RESOLVED/TESTING/IN PROGRESS
-• KEY: Description (Assignee)
+### Logic gửi Telegram
 
-🐛 BUG/REOPEN/REJECT
-• Issues with defects
+- ✅ Success → `TELEGRAM_GROUP_CHAT_ID` (thread nếu có)
+- ❌ Error → `TELEGRAM_CHAT_ID` (private)
 
-GHI CHÚ
-• 😴 Inactive: Members with no activity
-```
+### Tùy chỉnh Prompt
+
+Chỉnh `DAILY_PROMPT` trong `daily-report.mjs`
+
+---
+
+## Troubleshooting
+
+| Lỗi | Giải pháp |
+|-----|-----------|
+| PAT invalid | Kiểm tra token, JIRA_DOMAIN không trailing slash |
+| API Error 500 | Anthropic server lỗi, script tự retry 3 lần |
+| Không nhận Telegram | Bot đã add vào group? Thread ID đúng? |
+
+---
 
 ## License
 
