@@ -2,26 +2,50 @@
 
 import { spawn } from "child_process";
 
+// ============================================================
+// CẤU HÌNH - CHỈNH SỬA THEO TEAM CỦA BẠN
+// ============================================================
+
+// Danh sách project Jira cần theo dõi
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+
+// Project chính để lấy danh sách team members
+const MAIN_PROJECT = "PSV2";
+
+// Danh sách user bỏ qua (không tính vào báo cáo)
+const EXCLUDED_USERS = [
+  "Jira Automation",
+  "Unassigned",
+  // Thêm tên user cần bỏ qua ở đây
+];
+
+// ============================================================
+// TELEGRAM CONFIG (từ .env)
+// ============================================================
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // For errors
 const TELEGRAM_GROUP_CHAT_ID = process.env.TELEGRAM_GROUP_CHAT_ID; // For success
 const TELEGRAM_GROUP_THREAD_ID = process.env.TELEGRAM_GROUP_THREAD_ID; // Thread in group
 
-// Prompt sử dụng skills của Claude Code
-// Format cho Telegram - không dùng table, dùng emoji và text đơn giản
+// ============================================================
+// PROMPT TEMPLATE
+// ============================================================
+const projectList = JIRA_PROJECTS.join(", ");
+const excludeList = EXCLUDED_USERS.map(u => `"${u}"`).join(", ");
+
 const DAILY_PROMPT = `[CRITICAL INSTRUCTION] Your ENTIRE response must start with "📊" - NO other text before it. Do NOT write any thinking, explanation, or narration like "Tôi đã có dữ liệu", "Bây giờ tôi sẽ", etc. ONLY output the report.
 
 Daily report Jira hôm nay.
 
-PROJECTS: PSV2, DIC, DEPOT, AVA
+PROJECTS: ${projectList}
 
 BƯỚC 1 - LẤY TEAM MEMBERS:
 Dùng jira-self-hosted skill để query API lấy danh sách team members:
-GET /rest/api/2/user/assignable/search?project=PSV2&maxResults=100
-Exclude: "Jira Automation", "Unassigned", "Jason", "Nguyễn Minh Thuận", "Phan Huỳnh Toàn Đức"
+GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
+Exclude: ${excludeList}
 
 BƯỚC 2 - LẤY ISSUES HÔM QUA:
-Query JQL: project IN (PSV2, DIC, DEPOT, AVA) AND updated >= startOfDay(-1) AND updated < startOfDay()
+Query JQL: project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()
 
 BƯỚC 3 - XÁC ĐỊNH NGƯỜI KHÔNG HOẠT ĐỘNG:
 So sánh team members với assignees có task hôm qua → list người không có task nào

@@ -70,6 +70,24 @@ Chuyển đổi thành script chạy định kỳ, gửi report qua Telegram.
 ### Yêu cầu thêm
 - Node.js 18+
 - Telegram Bot
+- Claude Code đã authenticate trên server
+
+### Authentication
+
+Script sử dụng authentication của Claude Code CLI. Nếu chạy tự động trên server:
+
+```bash
+# SSH vào server
+ssh user@server
+
+# Login Claude Code 1 lần
+claude login
+
+# Verify
+claude --version
+```
+
+Sau khi login, Claude Code lưu credentials tại `~/.claude/` - cron job sẽ tự động sử dụng.
 
 ### Bước 1: Cấu hình Environment
 
@@ -148,9 +166,34 @@ Thêm (8h sáng Vietnam = 1h UTC):
 - ✅ Success → `TELEGRAM_GROUP_CHAT_ID` (thread nếu có)
 - ❌ Error → `TELEGRAM_CHAT_ID` (private)
 
+### Tùy chỉnh cấu hình
+
+Mở `daily-report.mjs` và chỉnh phần **CẤU HÌNH** ở đầu file:
+
+```javascript
+// Danh sách project Jira cần theo dõi
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+
+// Project chính để lấy danh sách team members
+const MAIN_PROJECT = "PSV2";
+
+// Danh sách user bỏ qua (không tính vào báo cáo)
+const EXCLUDED_USERS = [
+  "Jira Automation",
+  "Unassigned",
+  // Thêm tên user cần bỏ qua ở đây
+];
+```
+
+| Biến | Mô tả |
+|------|-------|
+| `JIRA_PROJECTS` | Mảng các project key cần theo dõi |
+| `MAIN_PROJECT` | Project dùng để query danh sách team members |
+| `EXCLUDED_USERS` | Users không tính (bot, automation, manager...)|
+
 ### Tùy chỉnh Prompt
 
-Chỉnh `DAILY_PROMPT` trong `daily-report.mjs`
+Chỉnh `DAILY_PROMPT` trong `daily-report.mjs` nếu muốn thay đổi format báo cáo
 
 ---
 
