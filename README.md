@@ -6,6 +6,33 @@
 
 ---
 
+## 🚀 Cách sử dụng chính: Hỏi đáp qua Claude Code CLI
+
+**Đây là cách sử dụng chính và đơn giản nhất.**
+
+Sau khi cài đặt skill, bạn có thể hỏi Claude bất kỳ điều gì về Jira:
+
+```bash
+# Mở Claude Code CLI
+claude
+
+# Sau đó hỏi tự nhiên:
+> Tổng hợp task của team hôm qua
+> Ai đang làm gì trong project PSV2?
+> List các bug chưa fix trong sprint này
+> Thống kê số task done của từng người tuần này
+> Task nào đang bị block?
+```
+
+Claude sẽ tự động sử dụng skill `jira-self-hosted` để query Jira và trả lời.
+
+**Ưu điểm:**
+- Không cần nhớ JQL syntax
+- Hỏi bằng ngôn ngữ tự nhiên (Tiếng Việt/English)
+- Claude tự format kết quả dễ đọc
+
+---
+
 ## Cấu hình Workflow Logic (Bug/Reopen Detection)
 
 Claude hiểu workflow thông qua **2 file**:
@@ -274,6 +301,33 @@ MIT
 🤖 Claude Code skill for automated Jira daily reports sent via Telegram.
 
 **Only supports Jira Server/Data Center** (Self-Hosted) with PAT authentication.
+
+---
+
+## 🚀 Primary Usage: Q&A via Claude Code CLI
+
+**This is the main and simplest way to use this skill.**
+
+After installing the skill, ask Claude anything about Jira:
+
+```bash
+# Open Claude Code CLI
+claude
+
+# Then ask naturally:
+> Summarize team tasks from yesterday
+> Who is working on what in project PSV2?
+> List unfixed bugs in this sprint
+> Statistics of done tasks per person this week
+> Which tasks are blocked?
+```
+
+Claude will automatically use `jira-self-hosted` skill to query Jira and respond.
+
+**Benefits:**
+- No need to remember JQL syntax
+- Ask in natural language (Vietnamese/English)
+- Claude formats results for readability
 
 ---
 
