@@ -16,16 +16,6 @@
 >
 > Xem phần **"Tùy chỉnh cấu hình"** để biết chi tiết.
 
-> ⚠️ **IMPORTANT NOTE**
->
-> The workflow and configuration in this repo are based on the author's specific setup. **You need to customize** the following settings to match your team's workflow:
-> - Project list (`JIRA_PROJECTS`)
-> - Workflow status names (`JIRA_STATUSES`)
-> - Excluded users list (`EXCLUDED_USERS`)
-> - Report format (`DAILY_PROMPT`)
->
-> See **"Tùy chỉnh cấu hình"** section for details.
-
 ---
 
 ## Phần 1: Sử dụng với Claude CLI (Interactive)
@@ -233,6 +223,29 @@ To Do → In Progress → Resolved → Testing → Done
 
 ⚠️ **Lưu ý:** Nếu Jira của bạn dùng tên status khác (ví dụ: "QA Testing" thay vì "Testing"), hãy chỉnh `JIRA_STATUSES` cho phù hợp.
 
+### Cấu hình Workflow Logic (Bug/Reopen Detection)
+
+Claude hiểu workflow thông qua **2 file**:
+
+| File | Mục đích |
+|------|----------|
+| `skills/jira-self-hosted/SKILL.md` | Định nghĩa logic detect Bug, QC Reject, Reopen |
+| `daily-report.mjs` → `DAILY_PROMPT` | Hướng dẫn cách format output |
+
+**Để thay đổi cách detect Bug/Reopen:**
+
+1. Mở `skills/jira-self-hosted/SKILL.md`
+2. Tìm section `## Defect Detection Logic`
+3. Chỉnh sửa định nghĩa theo workflow của bạn
+
+Ví dụ thêm Reopen logic:
+```markdown
+### Reopen Definition
+- Issue chuyển từ Done → bất kỳ status nào khác = Reopen
+```
+
+Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
+
 ### Tùy chỉnh Prompt
 
 Chỉnh `DAILY_PROMPT` trong `daily-report.mjs` nếu muốn thay đổi format báo cáo
@@ -252,3 +265,203 @@ Chỉnh `DAILY_PROMPT` trong `daily-report.mjs` nếu muốn thay đổi format 
 ## License
 
 MIT
+
+---
+
+# English Version
+
+🤖 Claude Code skill for automated Jira daily reports sent via Telegram.
+
+**Only supports Jira Server/Data Center** (Self-Hosted) with PAT authentication.
+
+---
+
+> ⚠️ **IMPORTANT NOTE**
+>
+> The workflow and configuration in this repo are based on the author's specific setup. **You need to customize** the following settings to match your team's workflow:
+> - Project list (`JIRA_PROJECTS`)
+> - Workflow status names (`JIRA_STATUSES`)
+> - Excluded users list (`EXCLUDED_USERS`)
+> - Report format (`DAILY_PROMPT`)
+>
+> See **"Configuration"** section for details.
+
+---
+
+## Part 1: Using with Claude CLI (Interactive)
+
+### Requirements
+- [Claude Code CLI](https://github.com/anthropics/claude-code) installed and authenticated
+- Jira Server/Data Center v8.14.0+ (PAT support)
+
+### Install Skill
+
+```bash
+cp -r skills/jira-self-hosted ~/.claude/skills/
+
+cat > ~/.claude/skills/jira-self-hosted/.env << EOF
+JIRA_DOMAIN=https://your-jira-instance.com
+JIRA_PAT=your_personal_access_token
+EOF
+
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+```
+
+### Get Jira PAT
+
+1. Login Jira → Profile → Personal Access Tokens
+2. Create token → Copy token
+3. Add to `.env`
+
+### How to Prompt
+
+```
+Daily report for yesterday.
+Projects: PSV2, DIC, DEPOT
+
+Use jira-self-hosted skill to:
+1. Query issues updated yesterday
+2. Group by status: Done, Resolved, Testing, In Progress
+3. List by person
+```
+
+---
+
+## Part 2: Automated Cron Job
+
+### Additional Requirements
+- Node.js 18+
+- Telegram Bot
+- Claude Code authenticated on server
+
+### Authentication
+
+```bash
+ssh user@server
+claude login
+claude --version
+```
+
+### Step 1: Configure Environment
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+```bash
+# === TELEGRAM ===
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_CHAT_ID=123456789            # For errors
+TELEGRAM_GROUP_CHAT_ID=-100123456789  # For success
+TELEGRAM_GROUP_THREAD_ID=123          # Thread ID (optional)
+
+# === JIRA ===
+JIRA_DOMAIN=https://your-jira.com
+JIRA_PAT=your_personal_access_token
+```
+
+### Step 2: Get Telegram IDs
+
+**Bot Token:** Chat @BotFather → `/newbot` → copy token
+
+**Chat ID:** Chat @userinfobot → Copy "Id"
+
+**Group Chat ID:**
+1. Add bot to group
+2. Send message in group
+3. Visit: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+4. Find `"chat":{"id":-100...}`
+
+### Step 3: Install Skill
+
+```bash
+cp -r skills/jira-self-hosted ~/.claude/skills/
+cp .env ~/.claude/skills/jira-self-hosted/.env
+```
+
+### Step 4: Test
+
+```bash
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+./run-daily-report.sh
+```
+
+### Step 5: Setup Cron
+
+```bash
+crontab -e
+```
+
+Add (8am Vietnam = 1am UTC):
+
+```cron
+0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
+```
+
+### Configuration
+
+Edit `daily-report.mjs`:
+
+```javascript
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+const MAIN_PROJECT = "PSV2";
+const EXCLUDED_USERS = ["Jira Automation", "Unassigned"];
+```
+
+### Workflow Statuses
+
+```javascript
+const JIRA_STATUSES = {
+  done: "Done",
+  resolved: "Resolved",   // Dev done, waiting QC
+  testing: "Testing",     // QC testing
+  inProgress: "In Progress",
+  toDo: "To Do",
+};
+```
+
+**Standard workflow:**
+```
+To Do → In Progress → Resolved → Testing → Done
+```
+
+⚠️ If your Jira uses different status names, update `JIRA_STATUSES` accordingly.
+
+### Workflow Logic Configuration (Bug/Reopen Detection)
+
+Claude understands workflow through **2 files**:
+
+| File | Purpose |
+|------|---------|
+| `skills/jira-self-hosted/SKILL.md` | Defines Bug, QC Reject, Reopen detection logic |
+| `daily-report.mjs` → `DAILY_PROMPT` | Output format instructions |
+
+**To change Bug/Reopen detection:**
+
+1. Open `skills/jira-self-hosted/SKILL.md`
+2. Find `## Defect Detection Logic` section
+3. Modify definitions to match your workflow
+
+Example - add Reopen logic:
+```markdown
+### Reopen Definition
+- Issue moved from Done → any other status = Reopen
+```
+
+Claude reads SKILL.md and applies this logic when generating reports.
+
+### Telegram Logic
+
+- ✅ Success → `TELEGRAM_GROUP_CHAT_ID`
+- ❌ Error → `TELEGRAM_CHAT_ID`
+
+---
+
+## Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| PAT invalid | Check token, JIRA_DOMAIN without trailing slash |
+| API Error 500 | Anthropic server error, script retries 3 times |
+| No Telegram message | Bot added to group? Thread ID correct? |
