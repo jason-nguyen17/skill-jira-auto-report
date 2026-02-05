@@ -46,11 +46,13 @@ done
 ## Rate Limits
 
 ### Server/Data Center
+
 - No hard limits documented
 - Implement client-side throttling
 - Recommended: 2-5 requests/second
 
 ### Pagination
+
 - Use `startAt` + `maxResults` for large queries
 - Max 100 results per request
 - Always check `total` vs returned count
@@ -72,6 +74,7 @@ done
 ## Security
 
 ### Token Management
+
 1. Store in environment variables
 2. Never log or print tokens
 3. Set token expiration (90 days max)
@@ -79,6 +82,7 @@ done
 5. Revoke unused tokens promptly
 
 ### Secure Storage
+
 ```bash
 # Good: Environment variable
 export JIRA_PAT="token"
@@ -91,6 +95,7 @@ JIRA_PAT="token"  # Never do this
 ```
 
 ### HTTPS Only
+
 - Always use https:// URLs
 - Verify SSL certificates
 - Never disable certificate validation
@@ -98,6 +103,7 @@ JIRA_PAT="token"  # Never do this
 ## Performance
 
 ### Field Selection
+
 Reduce payload by requesting only needed fields:
 
 ```bash
@@ -109,6 +115,7 @@ curl ".../issue/PROJ-123?fields=summary,status,assignee"
 ```
 
 ### Efficient JQL
+
 ```jql
 # Bad: Slow, returns many results
 project = PROJ
@@ -118,6 +125,7 @@ project = PROJ AND status = Open AND updated >= -7d
 ```
 
 ### Batch Operations
+
 - Group related queries where possible
 - Use search endpoint vs individual GET calls
 - Cache frequently accessed data locally
@@ -125,6 +133,7 @@ project = PROJ AND status = Open AND updated >= -7d
 ## Common Patterns
 
 ### Check Issue Exists
+
 ```bash
 http_code=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $JIRA_PAT" \
@@ -136,6 +145,7 @@ fi
 ```
 
 ### Extract Specific Fields
+
 ```bash
 curl -s ... | jq '{
   key: .key,
@@ -146,6 +156,7 @@ curl -s ... | jq '{
 ```
 
 ### Count Results Only
+
 ```bash
 curl -s ... -d '{"jql": "...", "maxResults": 0}' | jq '.total'
 ```
@@ -153,16 +164,19 @@ curl -s ... -d '{"jql": "...", "maxResults": 0}' | jq '.total'
 ## Troubleshooting
 
 ### Connection Issues
+
 - Verify JIRA_DOMAIN URL format (include https://)
 - Check firewall/VPN access
 - Test with curl verbose: `curl -v ...`
 
 ### Authentication Failures
+
 - Verify PAT not expired
 - Check user permissions
 - Confirm PAT feature enabled in Jira admin
 
 ### JQL Errors
+
 - Validate query syntax in Jira UI first
 - Quote values with spaces
 - Escape special characters

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Search Jira issues using JQL
-# Usage: ./jira-search.sh "project = PROJ AND status = Open" [-m 50] [-f key,summary,status]
+# Usage: ./jira-search.sh "project = PROJ AND status = Open" [-m 50] [-f key,summary,status] [-e changelog]
 # Exit: 0=success, 1=failure
 set -euo pipefail
 
@@ -18,6 +18,7 @@ fi
 # Defaults
 MAX_RESULTS=50
 FIELDS="key,summary,status,assignee,priority"
+EXPAND=""
 JQL=""
 
 # Parse arguments
@@ -31,6 +32,14 @@ while [[ $# -gt 0 ]]; do
       FIELDS="$2"
       shift 2
       ;;
+    -e|--expand)
+      if [[ -z "${2:-}" ]]; then
+        echo '{"error": "Missing value for -e/--expand. Usage: -e changelog"}' >&2
+        exit 1
+      fi
+      EXPAND="$2"
+      shift 2
+      ;;
     *)
       JQL="$1"
       shift
@@ -39,19 +48,29 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$JQL" ]]; then
-  echo '{"error": "JQL query required. Usage: ./jira-search.sh \"project = PROJ\""}' >&2
+  echo '{"error": "JQL query required. Usage: ./jira-search.sh \"project = PROJ\" [-m 50] [-f fields] [-e changelog]"}' >&2
   exit 1
 fi
 
 # Convert comma-separated fields to JSON array
 fields_json=$(echo "$FIELDS" | jq -R 'split(",")')
 
-# Build request body
-request_body=$(jq -n \
-  --arg jql "$JQL" \
-  --argjson maxResults "$MAX_RESULTS" \
-  --argjson fields "$fields_json" \
-  '{jql: $jql, startAt: 0, maxResults: $maxResults, fields: $fields}')
+# Build request body with optional expand
+if [[ -n "$EXPAND" ]]; then
+  expand_json=$(echo "$EXPAND" | jq -R 'split(",")')
+  request_body=$(jq -n \
+    --arg jql "$JQL" \
+    --argjson maxResults "$MAX_RESULTS" \
+    --argjson fields "$fields_json" \
+    --argjson expand "$expand_json" \
+    '{jql: $jql, startAt: 0, maxResults: $maxResults, fields: $fields, expand: $expand}')
+else
+  request_body=$(jq -n \
+    --arg jql "$JQL" \
+    --argjson maxResults "$MAX_RESULTS" \
+    --argjson fields "$fields_json" \
+    '{jql: $jql, startAt: 0, maxResults: $maxResults, fields: $fields}')
+fi
 
 # Execute search
 response=$(curl -s -w "\n%{http_code}" \

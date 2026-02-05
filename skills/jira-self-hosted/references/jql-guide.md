@@ -92,71 +92,85 @@ field operator value [AND|OR field operator value]... [ORDER BY field [ASC|DESC]
 ## Example Queries
 
 ### My Issues
+
 ```jql
 assignee = currentUser() AND status != Done ORDER BY priority DESC
 ```
 
 ### Open Bugs in Project
+
 ```jql
 project = PROJ AND type = Bug AND status = Open
 ```
 
 ### High Priority Unassigned
+
 ```jql
 priority IN (High, Highest) AND assignee IS EMPTY
 ```
 
 ### Updated This Week
+
 ```jql
 updated >= startOfWeek() ORDER BY updated DESC
 ```
 
 ### Created Last 7 Days
+
 ```jql
 created >= -7d ORDER BY created DESC
 ```
 
 ### Issues in Current Sprint
+
 ```jql
 sprint IN openSprints() AND project = PROJ
 ```
 
 ### Overdue Issues
+
 ```jql
 duedate < now() AND status != Done
 ```
 
 ### Search in Summary/Description
+
 ```jql
 summary ~ "performance" OR description ~ "slow"
 ```
 
 ### Issues Without Labels
+
 ```jql
 project = PROJ AND labels IS EMPTY
 ```
 
 ### Recently Resolved
+
 ```jql
 resolved >= -7d ORDER BY resolved DESC
 ```
 
 ### Blocked Issues
+
 ```jql
 status = "Blocked" OR labels = "blocked"
 ```
 
 ### By Component
+
 ```jql
 project = PROJ AND component = "Backend"
 ```
 
 ### Multiple Status
+
 ```jql
 status IN ("To Do", "In Progress", "In Review")
 ```
 
 ### Exclude Subtasks
+
 ```jql
 project = PROJ AND issuetype != Sub-task
 ```

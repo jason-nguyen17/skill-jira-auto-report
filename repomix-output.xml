@@ -1,0 +1,2016 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+skills/
+  jira-self-hosted/
+    references/
+      api-reference.md
+      authentication.md
+      best-practices.md
+      jql-guide.md
+    scripts/
+      jira-auth-test.sh
+      jira-issue-get.sh
+      jira-search.sh
+    SKILL.md
+.env.example
+.gitignore
+daily-report.mjs
+env.claude
+install-skill.sh
+README.md
+run-daily-report.sh
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="skills/jira-self-hosted/references/api-reference.md">
+# Jira REST API v2 Reference
+
+## Base Configuration
+
+```
+Base URL: {JIRA_DOMAIN}/rest/api/2
+Headers:
+  Authorization: Bearer {JIRA_PAT}
+  Content-Type: application/json
+```
+
+## Search Issues (JQL)
+
+### POST /search (Recommended)
+
+Best for complex JQL queries with field selection.
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jql": "project = PROJ AND status = Open",
+    "startAt": 0,
+    "maxResults": 50,
+    "fields": ["key", "summary", "status", "assignee", "priority"]
+  }' \
+  "${JIRA_DOMAIN}/rest/api/2/search"
+```
+
+**Request Body**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| jql | string | JQL query string |
+| startAt | int | Pagination offset (default: 0) |
+| maxResults | int | Max results per page (default: 50, max: 100) |
+| fields | array | Fields to return (reduces payload) |
+
+**Response**
+
+```json
+{
+  "startAt": 0,
+  "maxResults": 50,
+  "total": 125,
+  "issues": [
+    {
+      "key": "PROJ-123",
+      "fields": {
+        "summary": "Issue title",
+        "status": {"name": "Open"},
+        "assignee": {"displayName": "John Doe"},
+        "priority": {"name": "High"}
+      }
+    }
+  ]
+}
+```
+
+### GET /search
+
+Simple queries via URL parameters.
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/search?jql=project=PROJ&maxResults=10"
+```
+
+## Get Issue
+
+### GET /issue/{key}
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/issue/PROJ-123"
+```
+
+**With Field Selection**
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/issue/PROJ-123?fields=summary,status,description,comment"
+```
+
+**Response**
+
+```json
+{
+  "key": "PROJ-123",
+  "fields": {
+    "summary": "Issue title",
+    "status": {"name": "In Progress"},
+    "description": "Issue description text",
+    "assignee": {"displayName": "John Doe", "emailAddress": "john@example.com"},
+    "reporter": {"displayName": "Jane Smith"},
+    "priority": {"name": "High"},
+    "created": "2026-01-15T10:30:00.000+0000",
+    "updated": "2026-01-20T14:45:00.000+0000",
+    "comment": {
+      "comments": [
+        {"body": "Comment text", "author": {"displayName": "John"}}
+      ]
+    }
+  }
+}
+```
+
+## Comments
+
+### GET /issue/{key}/comment
+
+List all comments on an issue.
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/issue/PROJ-123/comment"
+```
+
+**Response**
+
+```json
+{
+  "comments": [
+    {
+      "id": "10001",
+      "body": "This is a comment",
+      "author": {"displayName": "John Doe"},
+      "created": "2026-01-15T10:30:00.000+0000",
+      "updated": "2026-01-15T10:30:00.000+0000"
+    }
+  ],
+  "total": 5
+}
+```
+
+## Projects
+
+### GET /project
+
+List all accessible projects.
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/project"
+```
+
+**Response**
+
+```json
+[
+  {
+    "key": "PROJ",
+    "name": "Project Name",
+    "projectTypeKey": "software",
+    "lead": {"displayName": "Project Lead"}
+  }
+]
+```
+
+### GET /project/{key}
+
+Get project details.
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/project/PROJ"
+```
+
+## Pagination
+
+For large result sets, use pagination:
+
+```bash
+# Page 1 (issues 0-49)
+startAt=0&maxResults=50
+
+# Page 2 (issues 50-99)
+startAt=50&maxResults=50
+
+# Page 3 (issues 100-149)
+startAt=100&maxResults=50
+```
+
+**Check if more pages exist:**
+
+```
+hasMore = (startAt + maxResults) < total
+```
+
+## Common Fields
+
+| Field | Description |
+|-------|-------------|
+| key | Issue key (e.g., PROJ-123) |
+| summary | Issue title |
+| description | Full description |
+| status | Current status object |
+| assignee | Assigned user object |
+| reporter | Creator user object |
+| priority | Priority level object |
+| created | Creation timestamp |
+| updated | Last update timestamp |
+| labels | Array of label strings |
+| components | Array of component objects |
+| fixVersions | Target versions array |
+
+## Error Responses
+
+| Code | Meaning | Example |
+|------|---------|---------|
+| 400 | Bad Request | Invalid JQL syntax |
+| 401 | Unauthorized | Invalid/expired PAT |
+| 403 | Forbidden | No permission to resource |
+| 404 | Not Found | Issue/project doesn't exist |
+
+**Error Response Format**
+
+```json
+{
+  "errorMessages": ["Issue does not exist or you do not have permission to see it"],
+  "errors": {}
+}
+```
+</file>
+
+<file path="skills/jira-self-hosted/references/authentication.md">
+# PAT Authentication for Jira Server/Data Center
+
+## Overview
+
+Personal Access Tokens (PAT) provide secure, token-based authentication for Jira REST API calls. PATs are preferred over Basic Auth for integrations.
+
+| Method | Security | Use Case |
+|--------|----------|----------|
+| PAT Bearer | High | Integrations, automation, CI/CD |
+| Basic Auth | Medium | Legacy, deprecated |
+| OAuth 2.0 | High | Limited support in Server/DC |
+
+## Prerequisites
+
+- Jira Server v8.14.0+ or Data Center
+- "Enhance API Security for Jira REST APIs" enabled in admin settings
+- User account with appropriate project permissions
+
+## Creating a PAT
+
+1. Log in to Jira
+2. Click **Profile icon** > **Profile**
+3. Select **Personal Access Tokens** (left sidebar)
+4. Click **Create token**
+5. Enter token name (e.g., "Claude Integration")
+6. Set expiration (recommended: 90 days)
+7. Click **Create**
+8. **Copy token immediately** (shown only once)
+
+## Usage
+
+### Header Format
+
+```
+Authorization: Bearer <your_pat_token>
+```
+
+### cURL Example
+
+```bash
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  -H "Content-Type: application/json" \
+  "${JIRA_DOMAIN}/rest/api/2/myself"
+```
+
+### Environment Variables
+
+```bash
+export JIRA_DOMAIN="https://your-jira-instance.com"
+export JIRA_PAT="your_personal_access_token"
+```
+
+## Security Best Practices
+
+1. **Use service accounts**: Create dedicated account for integrations
+2. **Set expiration**: Always set token expiry (90 days recommended)
+3. **Minimal permissions**: Grant only required project access
+4. **Environment variables**: Never hardcode tokens in scripts
+5. **Regular audits**: Review and revoke unused tokens
+6. **HTTPS only**: Always use HTTPS for API calls
+
+## Token Management
+
+### View Active Tokens
+
+Profile > Personal Access Tokens > View all tokens
+
+### Revoke Token
+
+Profile > Personal Access Tokens > Select token > Revoke
+
+### Token Rotation
+
+1. Create new token before old expires
+2. Update integrations with new token
+3. Revoke old token
+
+## Troubleshooting
+
+### 401 Unauthorized
+
+- Token expired or invalid
+- Token not properly formatted in header
+- Missing "Bearer " prefix
+
+**Fix**: Verify token, regenerate if expired
+
+### 403 Forbidden
+
+- User lacks project/issue permissions
+- Token scope insufficient
+
+**Fix**: Check user permissions in Jira admin
+
+### PAT Feature Disabled
+
+- Security app may block PAT authentication
+- Admin settings may disable PATs
+
+**Fix**: Contact Jira admin to enable PAT support
+
+### Connection Errors
+
+- Incorrect JIRA_DOMAIN URL
+- Missing https:// prefix
+- Firewall/VPN blocking access
+
+**Fix**: Verify URL format and network connectivity
+
+## Testing Connection
+
+```bash
+# Test PAT authentication
+curl -s \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/myself" | jq '.displayName, .emailAddress'
+```
+
+Expected output: Your display name and email.
+</file>
+
+<file path="skills/jira-self-hosted/references/best-practices.md">
+# Best Practices for Jira API Integration
+
+## Error Handling
+
+### HTTP Status Codes
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 200 | Success | Process response |
+| 400 | Bad Request | Check JQL syntax, validate JSON |
+| 401 | Unauthorized | Refresh token, verify PAT |
+| 403 | Forbidden | Check permissions |
+| 404 | Not Found | Verify resource exists |
+| 429 | Rate Limited | Implement backoff |
+| 500 | Server Error | Retry with delay |
+
+### Error Response Parsing
+
+```bash
+response=$(curl -s -w "\n%{http_code}" ...)
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+  error_msg=$(echo "$body" | jq -r '.errorMessages[0] // "Unknown error"')
+  echo "Error: $error_msg" >&2
+  exit 1
+fi
+```
+
+### Retry Logic
+
+```bash
+max_retries=3
+retry_delay=2
+
+for ((i=1; i<=max_retries; i++)); do
+  response=$(curl -s ...)
+  if [[ $? -eq 0 ]]; then
+    break
+  fi
+  sleep $((retry_delay * i))
+done
+```
+
+## Rate Limits
+
+### Server/Data Center
+
+- No hard limits documented
+- Implement client-side throttling
+- Recommended: 2-5 requests/second
+
+### Pagination
+
+- Use `startAt` + `maxResults` for large queries
+- Max 100 results per request
+- Always check `total` vs returned count
+
+```bash
+# Paginated fetch
+start_at=0
+max_results=50
+total=999
+
+while [[ $start_at -lt $total ]]; do
+  response=$(curl ... -d "{\"startAt\": $start_at, \"maxResults\": $max_results}")
+  total=$(echo "$response" | jq '.total')
+  # Process issues...
+  start_at=$((start_at + max_results))
+done
+```
+
+## Security
+
+### Token Management
+
+1. Store in environment variables
+2. Never log or print tokens
+3. Set token expiration (90 days max)
+4. Use dedicated service accounts
+5. Revoke unused tokens promptly
+
+### Secure Storage
+
+```bash
+# Good: Environment variable
+export JIRA_PAT="token"
+
+# Good: .env file with restricted permissions
+chmod 600 .env
+
+# Bad: Hardcoded in script
+JIRA_PAT="token"  # Never do this
+```
+
+### HTTPS Only
+
+- Always use https:// URLs
+- Verify SSL certificates
+- Never disable certificate validation
+
+## Performance
+
+### Field Selection
+
+Reduce payload by requesting only needed fields:
+
+```bash
+# Bad: Returns all fields
+curl .../issue/PROJ-123
+
+# Good: Returns only needed fields
+curl ".../issue/PROJ-123?fields=summary,status,assignee"
+```
+
+### Efficient JQL
+
+```jql
+# Bad: Slow, returns many results
+project = PROJ
+
+# Good: Specific, fewer results
+project = PROJ AND status = Open AND updated >= -7d
+```
+
+### Batch Operations
+
+- Group related queries where possible
+- Use search endpoint vs individual GET calls
+- Cache frequently accessed data locally
+
+## Common Patterns
+
+### Check Issue Exists
+
+```bash
+http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  "${JIRA_DOMAIN}/rest/api/2/issue/PROJ-123")
+
+if [[ "$http_code" == "200" ]]; then
+  echo "Issue exists"
+fi
+```
+
+### Extract Specific Fields
+
+```bash
+curl -s ... | jq '{
+  key: .key,
+  summary: .fields.summary,
+  status: .fields.status.name,
+  assignee: .fields.assignee.displayName
+}'
+```
+
+### Count Results Only
+
+```bash
+curl -s ... -d '{"jql": "...", "maxResults": 0}' | jq '.total'
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+- Verify JIRA_DOMAIN URL format (include https://)
+- Check firewall/VPN access
+- Test with curl verbose: `curl -v ...`
+
+### Authentication Failures
+
+- Verify PAT not expired
+- Check user permissions
+- Confirm PAT feature enabled in Jira admin
+
+### JQL Errors
+
+- Validate query syntax in Jira UI first
+- Quote values with spaces
+- Escape special characters
+</file>
+
+<file path="skills/jira-self-hosted/references/jql-guide.md">
+# JQL (Jira Query Language) Guide
+
+## Basic Syntax
+
+```
+field operator value [AND|OR field operator value]... [ORDER BY field [ASC|DESC]]
+```
+
+## Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| = | Equals | `status = "Open"` |
+| != | Not equals | `status != Done` |
+| ~ | Contains (text) | `summary ~ "bug"` |
+| !~ | Not contains | `summary !~ "test"` |
+| > | Greater than | `created > -7d` |
+| >= | Greater or equal | `priority >= High` |
+| < | Less than | `updated < -30d` |
+| <= | Less or equal | `duedate <= endOfWeek()` |
+| IN | In list | `status IN (Open, "In Progress")` |
+| NOT IN | Not in list | `priority NOT IN (Low, Lowest)` |
+| IS | Null check | `assignee IS EMPTY` |
+| IS NOT | Not null | `assignee IS NOT EMPTY` |
+| WAS | Historical | `status WAS "Open"` |
+| CHANGED | Changed | `status CHANGED` |
+
+## Keywords
+
+| Keyword | Description |
+|---------|-------------|
+| AND | Both conditions must match |
+| OR | Either condition matches |
+| NOT | Negate condition |
+| ORDER BY | Sort results |
+| ASC | Ascending order |
+| DESC | Descending order |
+
+## Common Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| project | Text | Project key (e.g., PROJ) |
+| status | Text | Issue status |
+| assignee | User | Assigned user |
+| reporter | User | Issue creator |
+| priority | Text | Priority level |
+| type | Text | Issue type (Bug, Task, Story) |
+| created | Date | Creation date |
+| updated | Date | Last update date |
+| duedate | Date | Due date |
+| resolution | Text | Resolution status |
+| labels | Text | Issue labels |
+| component | Text | Component name |
+| fixVersion | Text | Target version |
+| sprint | Text | Sprint name |
+| summary | Text | Issue title |
+| description | Text | Issue description |
+
+## Date Functions
+
+| Function | Description |
+|----------|-------------|
+| now() | Current timestamp |
+| currentUser() | Logged-in user |
+| startOfDay() | Start of today |
+| endOfDay() | End of today |
+| startOfWeek() | Start of current week |
+| endOfWeek() | End of current week |
+| startOfMonth() | Start of current month |
+| endOfMonth() | End of current month |
+| startOfYear() | Start of current year |
+
+## Relative Dates
+
+| Format | Description |
+|--------|-------------|
+| -1d | 1 day ago |
+| -7d | 7 days ago |
+| -1w | 1 week ago |
+| -1m | 1 month ago |
+| +1d | 1 day from now |
+
+## Sprint Functions
+
+| Function | Description |
+|----------|-------------|
+| openSprints() | All open sprints |
+| closedSprints() | All closed sprints |
+| futureSprints() | Future sprints |
+
+## Example Queries
+
+### My Issues
+
+```jql
+assignee = currentUser() AND status != Done ORDER BY priority DESC
+```
+
+### Open Bugs in Project
+
+```jql
+project = PROJ AND type = Bug AND status = Open
+```
+
+### High Priority Unassigned
+
+```jql
+priority IN (High, Highest) AND assignee IS EMPTY
+```
+
+### Updated This Week
+
+```jql
+updated >= startOfWeek() ORDER BY updated DESC
+```
+
+### Created Last 7 Days
+
+```jql
+created >= -7d ORDER BY created DESC
+```
+
+### Issues in Current Sprint
+
+```jql
+sprint IN openSprints() AND project = PROJ
+```
+
+### Overdue Issues
+
+```jql
+duedate < now() AND status != Done
+```
+
+### Search in Summary/Description
+
+```jql
+summary ~ "performance" OR description ~ "slow"
+```
+
+### Issues Without Labels
+
+```jql
+project = PROJ AND labels IS EMPTY
+```
+
+### Recently Resolved
+
+```jql
+resolved >= -7d ORDER BY resolved DESC
+```
+
+### Blocked Issues
+
+```jql
+status = "Blocked" OR labels = "blocked"
+```
+
+### By Component
+
+```jql
+project = PROJ AND component = "Backend"
+```
+
+### Multiple Status
+
+```jql
+status IN ("To Do", "In Progress", "In Review")
+```
+
+### Exclude Subtasks
+
+```jql
+project = PROJ AND issuetype != Sub-task
+```
+
+## Custom Fields
+
+Access custom fields by name or ID:
+
+```jql
+"Custom Field Name" = "value"
+cf[10001] = "value"
+```
+
+## Tips
+
+1. **Quote values with spaces**: `status = "In Progress"`
+2. **Case insensitive**: Field names are case insensitive
+3. **Use parentheses**: Group complex conditions `(A OR B) AND C`
+4. **Escape special chars**: Use `\\` for backslash
+5. **Empty values**: Use `IS EMPTY` or `IS NOT EMPTY`
+</file>
+
+<file path="skills/jira-self-hosted/SKILL.md">
+---
+name: jira-self-hosted
+description: Query Jira Server/Data Center via REST API. Search issues (JQL), view issue details, list projects, view comments. Use for task tracking, sprint queries, issue lookup. READ-only operations.
+version: 1.0.0
+license: MIT
+allowed-tools:
+  - Bash
+---
+
+# Jira Self-Hosted (Server/Data Center)
+
+Query and view Jira issues via REST API v2 with PAT authentication.
+
+## When to Use
+
+Use when:
+
+- Searching issues with JQL queries
+- Viewing issue details (summary, status, assignee)
+- Listing projects
+- Reading comments
+- Answering questions about Jira data
+
+**Scope: READ-only** (no create/update operations)
+
+## Quick Reference
+
+### Authentication
+
+- **Reference**: `references/authentication.md` - PAT setup, header format, troubleshooting
+
+### API Endpoints
+
+- **Reference**: `references/api-reference.md` - Search, issues, projects, comments
+
+### JQL Queries
+
+- **Reference**: `references/jql-guide.md` - Syntax, operators, example queries
+
+### Best Practices
+
+- **Reference**: `references/best-practices.md` - Error handling, security, performance
+
+### Helper Scripts
+
+- `scripts/jira-auth-test.sh` - Validate PAT connection
+- `scripts/jira-search.sh "JQL"` - Execute JQL queries
+- `scripts/jira-issue-get.sh PROJ-123` - Get issue details
+
+## Environment Setup
+
+Required environment variables:
+
+```bash
+export JIRA_DOMAIN="https://your-jira-instance.com"
+export JIRA_PAT="your_personal_access_token"
+```
+
+Or use `.env` file in scripts directory.
+
+## Implementation Workflow
+
+1. Set up environment variables (JIRA_DOMAIN, JIRA_PAT)
+2. Test connection: `./scripts/jira-auth-test.sh`
+3. Search issues: `./scripts/jira-search.sh "project = PROJ AND status = Open"`
+4. View issue: `./scripts/jira-issue-get.sh PROJ-123`
+
+## Platform Requirements
+
+- Jira Server v8.14.0+ or Data Center (PAT support)
+- `curl` and `jq` available in environment
+
+## Defect Detection Logic
+
+### Định nghĩa Defect
+
+1. **Bug Type**: Issue có `issuetype = Bug`
+2. **QC Reject**: Issue bị reject từ Testing → work states (To Do, In Progress, Resolved)
+
+### Workflow chuẩn (KHÔNG phải defect)
+
+```
+In Progress → Resolved → Testing → Done
+```
+
+### Workflow có defect (QC Reject)
+
+```
+In Progress → Resolved → Testing → [Resolved/In Progress/To Do] → ... → Done
+                            ↑
+                      QC found issue
+```
+
+### Exclusions khi đếm defects by Developer
+
+- Exclude: `DurianNhi` (QC), `Jira Automation`, `Unassigned`
+- Developer = người move issue to `Resolved` (không phải assignee)
+
+### Metrics
+
+- **Defect Rate** = (Bug Type + QC Rejects) / Total Issues × 100%
+- **QC Reject** = Transition từ `testing` → `{to do, in progress, in development, open, resolved}`
+</file>
+
+<file path="env.claude">
+# Jira Server/Data Center Configuration
+# Get PAT: Jira → Profile → Personal Access Tokens
+# Priority: .env.dev > .env (delete .env.dev to use production)
+
+JIRA_DOMAIN=https://your-jira-instance.com
+JIRA_PAT=your_personal_access_token
+</file>
+
+<file path="install-skill.sh">
+#!/bin/bash
+
+# skill-jira-auto-report installer
+# Copy skill to ~/.claude/skills/ and setup .env
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_NAME="jira-self-hosted"
+SKILL_SRC="$SCRIPT_DIR/skills/$SKILL_NAME"
+SKILL_DEST="$HOME/.claude/skills/$SKILL_NAME"
+
+echo "🚀 Installing $SKILL_NAME skill..."
+
+# Check if source exists
+if [ ! -d "$SKILL_SRC" ]; then
+    echo "❌ Error: Skill source not found at $SKILL_SRC"
+    exit 1
+fi
+
+# Create destination directory
+mkdir -p "$HOME/.claude/skills"
+
+# Backup skill .env if exists
+ENV_FILE="$SKILL_DEST/.env"
+ENV_BACKUP=""
+
+if [ -f "$ENV_FILE" ]; then
+    ENV_BACKUP=$(cat "$ENV_FILE")
+    echo "ℹ️  Backed up existing skill .env"
+fi
+
+# Copy skill (overwrite if exists)
+if [ -d "$SKILL_DEST" ]; then
+    echo "⚠️  Skill already exists, updating..."
+    rm -rf "$SKILL_DEST"
+fi
+
+cp -r "$SKILL_SRC" "$SKILL_DEST"
+echo "✅ Copied skill to $SKILL_DEST"
+
+# Make scripts executable
+chmod +x "$SKILL_DEST/scripts/"*.sh 2>/dev/null || true
+echo "✅ Made scripts executable"
+
+# Restore or create .env from env.claude template
+ENV_TEMPLATE="$SCRIPT_DIR/env.claude"
+
+if [ -n "$ENV_BACKUP" ]; then
+    echo "$ENV_BACKUP" > "$ENV_FILE"
+    echo "✅ Restored existing .env"
+    echo ""
+    echo "ℹ️  If you need to update config, check template: $ENV_TEMPLATE"
+else
+    if [ -f "$ENV_TEMPLATE" ]; then
+        cp "$ENV_TEMPLATE" "$ENV_FILE"
+        echo "✅ Created .env from env.claude template"
+    else
+        echo "⚠️  env.claude template not found, creating default .env"
+        cat > "$ENV_FILE" << 'EOF'
+# Jira Server/Data Center Configuration
+# Get PAT: Jira → Profile → Personal Access Tokens
+
+JIRA_DOMAIN=https://your-jira-instance.com
+JIRA_PAT=your_personal_access_token
+EOF
+    fi
+fi
+
+# Setup project .env (for Telegram config) if not exists
+PROJECT_ENV="$SCRIPT_DIR/.env"
+PROJECT_ENV_EXAMPLE="$SCRIPT_DIR/.env.example"
+
+if [ ! -f "$PROJECT_ENV" ] && [ -f "$PROJECT_ENV_EXAMPLE" ]; then
+    cp "$PROJECT_ENV_EXAMPLE" "$PROJECT_ENV"
+    echo "✅ Created .env from .env.example (Telegram config)"
+fi
+
+echo ""
+echo "📋 Next steps:"
+echo "   1. Edit ~/.claude/skills/$SKILL_NAME/.env with your Jira credentials"
+echo "   2. Edit $SCRIPT_DIR/.env with your Telegram credentials"
+echo "   3. Test: ~/.claude/skills/$SKILL_NAME/scripts/jira-auth-test.sh"
+echo "   4. Use in Claude: /jira-self-hosted or ask about Jira naturally"
+echo ""
+echo "ℹ️  Note: Create .env.dev in project root for dev testing (daily-report.mjs only)"
+echo ""
+echo "✨ Installation complete!"
+</file>
+
+<file path="skills/jira-self-hosted/scripts/jira-auth-test.sh">
+#!/usr/bin/env bash
+# Validate Jira PAT authentication
+# Usage: ./jira-auth-test.sh
+# Exit: 0=success, 1=failure
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load .env
+if [[ -f "$SCRIPT_DIR/../.env" ]]; then
+  source "$SCRIPT_DIR/../.env"
+fi
+
+# Validate required vars
+: "${JIRA_DOMAIN:?Error: JIRA_DOMAIN not set}"
+: "${JIRA_PAT:?Error: JIRA_PAT not set}"
+
+# Test authentication
+response=$(curl -s -w "\n%{http_code}" \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  -H "Content-Type: application/json" \
+  "${JIRA_DOMAIN}/rest/api/2/myself")
+
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | sed '$d')
+
+if [[ "$http_code" == "200" ]]; then
+  echo "$body"
+  exit 0
+else
+  echo "{\"error\": \"Authentication failed\", \"http_code\": $http_code, \"response\": $body}" >&2
+  exit 1
+fi
+</file>
+
+<file path="skills/jira-self-hosted/scripts/jira-issue-get.sh">
+#!/usr/bin/env bash
+# Get Jira issue details
+# Usage: ./jira-issue-get.sh PROJ-123 [-f summary,status,description]
+# Exit: 0=success, 1=failure
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load .env
+if [[ -f "$SCRIPT_DIR/../.env" ]]; then
+  source "$SCRIPT_DIR/../.env"
+fi
+
+# Validate required vars
+: "${JIRA_DOMAIN:?Error: JIRA_DOMAIN not set}"
+: "${JIRA_PAT:?Error: JIRA_PAT not set}"
+
+# Defaults
+FIELDS=""
+ISSUE_KEY=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -f|--fields)
+      FIELDS="$2"
+      shift 2
+      ;;
+    *)
+      ISSUE_KEY="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$ISSUE_KEY" ]]; then
+  echo '{"error": "Issue key required. Usage: ./jira-issue-get.sh PROJ-123"}' >&2
+  exit 1
+fi
+
+# Build URL with optional fields
+url="${JIRA_DOMAIN}/rest/api/2/issue/${ISSUE_KEY}"
+if [[ -n "$FIELDS" ]]; then
+  url="${url}?fields=${FIELDS}"
+fi
+
+# Get issue
+response=$(curl -s -w "\n%{http_code}" \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  -H "Content-Type: application/json" \
+  "$url")
+
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | sed '$d')
+
+if [[ "$http_code" == "200" ]]; then
+  echo "$body"
+  exit 0
+else
+  echo "{\"error\": \"Failed to get issue\", \"http_code\": $http_code, \"response\": $body}" >&2
+  exit 1
+fi
+</file>
+
+<file path="skills/jira-self-hosted/scripts/jira-search.sh">
+#!/usr/bin/env bash
+# Search Jira issues using JQL
+# Usage: ./jira-search.sh "project = PROJ AND status = Open" [-m 50] [-f key,summary,status]
+# Exit: 0=success, 1=failure
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load .env
+if [[ -f "$SCRIPT_DIR/../.env" ]]; then
+  source "$SCRIPT_DIR/../.env"
+fi
+
+# Validate required vars
+: "${JIRA_DOMAIN:?Error: JIRA_DOMAIN not set}"
+: "${JIRA_PAT:?Error: JIRA_PAT not set}"
+
+# Defaults
+MAX_RESULTS=50
+FIELDS="key,summary,status,assignee,priority"
+JQL=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -m|--max-results)
+      MAX_RESULTS="$2"
+      shift 2
+      ;;
+    -f|--fields)
+      FIELDS="$2"
+      shift 2
+      ;;
+    *)
+      JQL="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$JQL" ]]; then
+  echo '{"error": "JQL query required. Usage: ./jira-search.sh \"project = PROJ\""}' >&2
+  exit 1
+fi
+
+# Convert comma-separated fields to JSON array
+fields_json=$(echo "$FIELDS" | jq -R 'split(",")')
+
+# Build request body
+request_body=$(jq -n \
+  --arg jql "$JQL" \
+  --argjson maxResults "$MAX_RESULTS" \
+  --argjson fields "$fields_json" \
+  '{jql: $jql, startAt: 0, maxResults: $maxResults, fields: $fields}')
+
+# Execute search
+response=$(curl -s -w "\n%{http_code}" \
+  -X POST \
+  -H "Authorization: Bearer $JIRA_PAT" \
+  -H "Content-Type: application/json" \
+  -d "$request_body" \
+  "${JIRA_DOMAIN}/rest/api/2/search")
+
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | sed '$d')
+
+if [[ "$http_code" == "200" ]]; then
+  echo "$body"
+  exit 0
+else
+  echo "{\"error\": \"Search failed\", \"http_code\": $http_code, \"response\": $body}" >&2
+  exit 1
+fi
+</file>
+
+<file path=".env.example">
+# ============================================
+# TELEGRAM (dùng bởi daily-report.mjs)
+# ============================================
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_private_chat_id
+TELEGRAM_GROUP_CHAT_ID=your_group_chat_id
+TELEGRAM_GROUP_THREAD_ID=your_thread_id
+</file>
+
+<file path=".gitignore">
+.env.dev
+.env
+*.log
+node_modules/
+.vscode
+.cursor
+</file>
+
+<file path="run-daily-report.sh">
+#!/bin/bash
+
+# Load environment variables: .env.dev (dev) > .env (prod)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -a
+if [[ -f "$SCRIPT_DIR/.env.dev" ]]; then
+  source "$SCRIPT_DIR/.env.dev"
+elif [[ -f "$SCRIPT_DIR/.env" ]]; then
+  source "$SCRIPT_DIR/.env"
+fi
+set +a
+
+cd "$SCRIPT_DIR"
+
+# Retry logic - max 3 attempts with 60s delay
+MAX_RETRIES=3
+RETRY_DELAY=60
+# Set node version
+nvm use 20
+
+for i in $(seq 1 $MAX_RETRIES); do
+    echo "🔄 Attempt $i/$MAX_RETRIES..."
+    node daily-report.mjs && exit 0
+
+    if [ $i -lt $MAX_RETRIES ]; then
+        echo "⏳ Waiting ${RETRY_DELAY}s before retry..."
+        sleep $RETRY_DELAY
+    fi
+done
+
+echo "❌ Failed after $MAX_RETRIES attempts"
+exit 1
+</file>
+
+<file path="daily-report.mjs">
+#!/usr/bin/env node
+
+import { spawn } from "child_process";
+
+// ============================================================
+// CẤU HÌNH - CHỈNH SỬA THEO TEAM CỦA BẠN
+// ============================================================
+
+// Danh sách project Jira cần theo dõi
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+
+// Project chính để lấy danh sách team members
+const MAIN_PROJECT = "PSV2";
+
+// Danh sách user bỏ qua (không tính vào báo cáo)
+const EXCLUDED_USERS = [
+  "Jira Automation",
+  "Unassigned",
+  // Thêm tên user cần bỏ qua ở đây
+];
+
+// Workflow statuses trong Jira của bạn
+// Chỉnh sửa nếu Jira của bạn dùng tên khác
+const JIRA_STATUSES = {
+  done: "Done",           // Hoàn thành
+  resolved: "Resolved",   // Dev xong, chờ QC
+  testing: "Testing",     // QC đang test
+  inProgress: "In Progress", // Đang làm
+  toDo: "To Do",          // Chưa làm
+};
+
+// ============================================================
+// TELEGRAM CONFIG (từ .env)
+// ============================================================
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // For errors
+const TELEGRAM_GROUP_CHAT_ID = process.env.TELEGRAM_GROUP_CHAT_ID; // For success
+const TELEGRAM_GROUP_THREAD_ID = process.env.TELEGRAM_GROUP_THREAD_ID; // Thread in group
+
+// ============================================================
+// PROMPT TEMPLATE
+// ============================================================
+const projectList = JIRA_PROJECTS.join(", ");
+const excludeList = EXCLUDED_USERS.map(u => `"${u}"`).join(", ");
+
+const DAILY_PROMPT = `[CRITICAL INSTRUCTION] Your ENTIRE response must start with "📊" - NO other text before it. Do NOT write any thinking, explanation, or narration like "Tôi đã có dữ liệu", "Bây giờ tôi sẽ", etc. ONLY output the report.
+
+Daily report Jira hôm nay.
+
+PROJECTS: ${projectList}
+
+BƯỚC 1 - LẤY TEAM MEMBERS:
+Dùng jira-self-hosted skill để query API lấy danh sách team members:
+GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
+Exclude: ${excludeList}
+
+BƯỚC 2 - LẤY ISSUES HÔM QUA:
+Query JQL: project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()
+
+BƯỚC 3 - XÁC ĐỊNH NGƯỜI KHÔNG HOẠT ĐỘNG:
+So sánh team members với assignees có task hôm qua → list người không có task nào
+
+BẮT BUỘC:
+1. Output BẮT ĐẦU NGAY bằng 📊 - TUYỆT ĐỐI KHÔNG có text nào trước đó
+2. KHÔNG viết câu mở đầu như: "Tôi đã có dữ liệu", "Bây giờ tôi sẽ", "Dựa trên", "Tổng hợp", "phân tích và tạo báo cáo", hay bất kỳ giải thích/narration nào
+3. KHÔNG dùng markdown ** hoặc __ - CHỈ dùng HTML <b></b>
+4. KHÔNG dùng table markdown | hoặc ---
+5. CHỈ output báo cáo theo FORMAT bên dưới, KHÔNG có bất kỳ text nào khác
+
+FORMAT (copy chính xác cấu trúc này):
+
+📊 <b>BÁO CÁO JIRA - [ngày hôm qua]</b>
+
+<b>TỔNG QUAN</b>
+✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
+
+<b>THEO NGƯỜI</b>
+👤 Tên: ✅X 📋X 🧪X 🔄X
+
+<b>CHI TIẾT DONE</b>
+• KEY: Mô tả (Assignee)
+
+<b>CHI TIẾT RESOLVED</b> (Dev xong, chờ QC)
+• KEY: Mô tả (Assignee)
+
+<b>CHI TIẾT TESTING</b>
+• KEY: Mô tả (Assignee)
+
+<b>CHI TIẾT IN PROGRESS</b>
+• KEY: Mô tả (Assignee)
+
+<b>🐛 BUG/REOPEN/REJECT</b>
+• KEY: Mô tả (Assignee) - trạng thái (hoặc "Không có")
+
+<b>GHI CHÚ</b>
+• 😴 Không hoạt động: Tên1, Tên2 (từ BƯỚC 3 - những người trong team nhưng không có task hôm nay)
+• Ghi chú khác nếu có`;
+
+function runClaudeCode(prompt) {
+  return new Promise((resolve, reject) => {
+    console.log("📝 Prompt:", prompt.slice(0, 50) + "...");
+
+    // Chạy claude CLI với flag --print (chỉ output, không interactive)
+    const claude = spawn(
+      "claude",
+      ["-p", prompt, "--output-format", "text", "--dangerously-skip-permissions"],
+      {
+        env: { ...process.env },
+        stdio: ["ignore", "pipe", "pipe"], // Ignore stdin to force non-interactive
+      }
+    );
+
+    console.log("🚀 Claude process started, PID:", claude.pid);
+
+    // Timeout 5 phút
+    const timeout = setTimeout(() => {
+      console.log("⏰ Timeout! Killing process...");
+      claude.kill();
+      reject(new Error("Claude timed out after 5 minutes"));
+    }, 5 * 60 * 1000);
+
+    let output = "";
+    let error = "";
+
+    claude.stdout.on("data", (data) => {
+      const chunk = data.toString();
+      process.stdout.write(chunk); // Stream output realtime
+      output += chunk;
+    });
+
+    claude.stderr.on("data", (data) => {
+      const chunk = data.toString();
+      process.stderr.write(chunk); // Stream errors realtime
+      error += chunk;
+    });
+
+    claude.on("close", (code) => {
+      clearTimeout(timeout);
+      console.log("🏁 Claude exited with code:", code);
+      if (code === 0) {
+        resolve(output.trim());
+      } else {
+        reject(new Error(`Claude exited with code ${code}: ${error}`));
+      }
+    });
+
+    claude.on("error", (err) => {
+      clearTimeout(timeout);
+      console.error("💥 Spawn error:", err.message);
+      reject(err);
+    });
+  });
+}
+
+async function sendTelegramMessage(text, chatId, threadId = null) {
+  // Telegram có limit 4096 chars, cần split nếu dài
+  const chunks = splitMessage(text, 4000);
+
+  for (const chunk of chunks) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const body = {
+      chat_id: chatId,
+      text: chunk,
+      parse_mode: "HTML",
+    };
+    if (threadId) {
+      body.message_thread_id = parseInt(threadId);
+    }
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+}
+
+function splitMessage(text, maxLength) {
+  // Nếu text ngắn, trả về nguyên
+  if (text.length <= maxLength) {
+    return [text];
+  }
+
+  // Split theo dòng để không cắt giữa chừng
+  const lines = text.split("\n");
+  const chunks = [];
+  let current = "";
+
+  for (const line of lines) {
+    if ((current + "\n" + line).length > maxLength) {
+      if (current) chunks.push(current.trim());
+      current = line;
+    } else {
+      current = current ? current + "\n" + line : line;
+    }
+  }
+  if (current) chunks.push(current.trim());
+
+  return chunks;
+}
+
+async function main() {
+  try {
+    console.log("🤖 Running Claude Code with skills...");
+    const response = await runClaudeCode(DAILY_PROMPT);
+
+    // Success → send to group thread
+    console.log("📤 Sending to Telegram Group...");
+    await sendTelegramMessage(response, TELEGRAM_GROUP_CHAT_ID, TELEGRAM_GROUP_THREAD_ID);
+
+    console.log("✅ Done!");
+  } catch (error) {
+    console.error("❌ Error:", error.message);
+    // Error → send to private chat
+    await sendTelegramMessage(`❌ <b>Daily Report Failed</b>\n\nError: ${error.message}`, TELEGRAM_CHAT_ID);
+    process.exit(1);
+  }
+}
+
+main();
+</file>
+
+<file path="README.md">
+# skill-jira-auto-report
+
+**English below**
+
+🤖 Claude Code skill để tạo báo cáo Jira tự động và gửi qua Telegram.
+
+**Chỉ hỗ trợ Jira Server/Data Center** (Self-Hosted) với PAT authentication.
+
+---
+
+## 🚀 Cách sử dụng chính: Hỏi đáp qua Claude Code CLI
+
+**Đây là cách sử dụng chính và đơn giản nhất.**
+
+Sau khi cài đặt skill, bạn có thể hỏi Claude bất kỳ điều gì về Jira:
+
+```bash
+# Mở Claude Code CLI
+claude
+
+# Sau đó hỏi tự nhiên:
+> Tổng hợp task của team hôm qua
+> Ai đang làm gì trong project PSV2?
+> List các bug chưa fix trong sprint này
+> Thống kê số task done của từng người tuần này
+> Task nào đang bị block?
+```
+
+Claude sẽ tự động sử dụng skill `jira-self-hosted` để query Jira và trả lời.
+
+**Ưu điểm:**
+- Không cần nhớ JQL syntax
+- Hỏi bằng ngôn ngữ tự nhiên (Tiếng Việt/English)
+- Claude tự format kết quả dễ đọc
+
+---
+
+## Cấu hình Workflow Logic (Bug/Reopen Detection)
+
+Claude hiểu workflow thông qua **2 file**:
+
+| File | Mục đích |
+|------|----------|
+| `skills/jira-self-hosted/SKILL.md` | Định nghĩa logic detect Bug, QC Reject, Reopen |
+| `daily-report.mjs` → `DAILY_PROMPT` | Hướng dẫn cách format output |
+
+**Để thay đổi cách detect Bug/Reopen:**
+
+1. Mở `skills/jira-self-hosted/SKILL.md`
+2. Tìm section `## Defect Detection Logic`
+3. Chỉnh sửa định nghĩa theo workflow của bạn
+
+Ví dụ thêm Reopen logic:
+```markdown
+### Reopen Definition
+- Issue chuyển từ Done → bất kỳ status nào khác = Reopen
+```
+
+Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
+
+---
+
+## Phần 1: Sử dụng với Claude CLI (Interactive)
+
+### Yêu cầu
+- [Claude Code CLI](https://github.com/anthropics/claude-code) đã cài đặt và authenticate
+- Jira Server/Data Center v8.14.0+ (hỗ trợ PAT)
+
+### Cài đặt Skill
+
+```bash
+# Chạy script cài đặt
+./install-skill.sh
+
+# Cấu hình Jira credentials
+nano ~/.claude/skills/jira-self-hosted/.env
+
+# Test kết nối
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+```
+
+### Development Environment (Optional)
+
+Để test daily report với dev Telegram, tạo file `.env.dev` trong project root:
+
+```bash
+# Tạo .env.dev (ưu tiên hơn .env cho daily-report.mjs)
+nano .env.dev
+```
+
+**Priority:** `.env.dev` > `.env` (chỉ áp dụng cho `run-daily-report.sh`)
+
+### Lấy Jira PAT
+
+1. Đăng nhập Jira → Profile → Personal Access Tokens
+2. Create token → Copy token
+3. Thêm vào `.env` hoặc `.env.dev`
+
+### Cách Prompt
+
+Trong Claude CLI, bạn có thể prompt:
+
+```
+Daily report Jira hôm qua.
+Projects: PSV2, DIC, DEPOT
+
+Dùng jira-self-hosted skill để:
+1. Query issues updated hôm qua
+2. Group theo status: Done, Resolved, Testing, In Progress
+3. List theo người
+```
+
+Hoặc đơn giản:
+
+```
+/jira-self-hosted
+
+Tổng hợp hoạt động team hôm qua cho projects PSV2, DIC
+```
+
+### Tham khảo
+
+- `skills/jira-self-hosted/references/jql-guide.md` - Cú pháp JQL
+- `skills/jira-self-hosted/references/api-reference.md` - API endpoints
+
+---
+
+## Phần 2: Chạy tự động với Cron
+
+Chuyển đổi thành script chạy định kỳ, gửi report qua Telegram.
+
+### Yêu cầu thêm
+- Node.js 18+
+- Telegram Bot
+- Claude Code đã authenticate trên server
+
+### Authentication
+
+Script sử dụng authentication của Claude Code CLI. Nếu chạy tự động trên server:
+
+```bash
+# SSH vào server
+ssh user@server
+
+# Login Claude Code 1 lần
+claude login
+
+# Verify
+claude --version
+```
+
+Sau khi login, Claude Code lưu credentials tại `~/.claude/` - cron job sẽ tự động sử dụng.
+
+### Bước 1: Cấu hình Environment
+
+⚠️ **Có 2 file .env riêng biệt:**
+
+| File | Dùng bởi | Biến |
+|------|----------|------|
+| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
+
+**1a. Telegram .env (project root):**
+```bash
+# install-skill.sh tự động copy nếu chưa có
+nano .env
+```
+
+```bash
+TELEGRAM_BOT_TOKEN=123456:ABC...      # Token từ @BotFather
+TELEGRAM_CHAT_ID=123456789            # Chat ID cho error notifications
+TELEGRAM_GROUP_CHAT_ID=-100123456789  # Group ID cho daily report
+TELEGRAM_GROUP_THREAD_ID=123          # Thread ID trong group (nếu có)
+```
+
+**1b. Jira .env (skill folder):**
+```bash
+# install-skill.sh tự động tạo từ env.claude template
+nano ~/.claude/skills/jira-self-hosted/.env
+```
+
+### Bước 2: Lấy Telegram IDs
+
+**Bot Token:**
+1. Chat với @BotFather → `/newbot` → copy token
+
+**Chat ID (private):**
+1. Chat với @userinfobot → Copy "Id"
+
+**Group Chat ID:**
+1. Thêm bot vào group
+2. Gửi message trong group
+3. Truy cập: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+4. Tìm `"chat":{"id":-100...}`
+
+**Thread ID (nếu dùng Topics):**
+- Trong response `getUpdates`, tìm `"message_thread_id"`
+
+### Bước 3: Cài đặt Skill
+
+```bash
+# Chạy installer (tự tạo .env template nếu chưa có)
+./install-skill.sh
+# Jira .env đã tạo ở Bước 1b
+```
+
+### Bước 4: Test
+
+```bash
+# Test Jira
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+
+# Test report
+./run-daily-report.sh
+```
+
+### Bước 5: Setup Cron
+
+```bash
+crontab -e
+```
+
+Thêm (8h sáng Vietnam = 1h UTC):
+
+```cron
+0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
+```
+
+### Cấu trúc
+
+| File | Mô tả |
+|------|-------|
+| `run-daily-report.sh` | Load .env, retry 3x, gọi Node |
+| `daily-report.mjs` | Spawn Claude CLI, gửi Telegram |
+
+### Logic gửi Telegram
+
+- ✅ Success → `TELEGRAM_GROUP_CHAT_ID` (thread nếu có)
+- ❌ Error → `TELEGRAM_CHAT_ID` (private)
+
+### Tùy chỉnh cấu hình
+
+Mở `daily-report.mjs` và chỉnh phần **CẤU HÌNH** ở đầu file:
+
+```javascript
+// Danh sách project Jira cần theo dõi
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+
+// Project chính để lấy danh sách team members
+const MAIN_PROJECT = "PSV2";
+
+// Danh sách user bỏ qua (không tính vào báo cáo)
+const EXCLUDED_USERS = [
+  "Jira Automation",
+  "Unassigned",
+  // Thêm tên user cần bỏ qua ở đây
+];
+```
+
+| Biến | Mô tả |
+|------|-------|
+| `JIRA_PROJECTS` | Mảng các project key cần theo dõi |
+| `MAIN_PROJECT` | Project dùng để query danh sách team members |
+| `EXCLUDED_USERS` | Users không tính (bot, automation, manager...)|
+| `JIRA_STATUSES` | Mapping tên status trong Jira của bạn |
+
+### Workflow Statuses
+
+```javascript
+const JIRA_STATUSES = {
+  done: "Done",           // Hoàn thành
+  resolved: "Resolved",   // Dev xong, chờ QC
+  testing: "Testing",     // QC đang test
+  inProgress: "In Progress", // Đang làm
+  toDo: "To Do",          // Chưa làm
+};
+```
+
+**Workflow chuẩn:**
+```
+To Do → In Progress → Resolved → Testing → Done
+```
+
+⚠️ **Lưu ý:** Nếu Jira của bạn dùng tên status khác (ví dụ: "QA Testing" thay vì "Testing"), hãy chỉnh `JIRA_STATUSES` cho phù hợp.
+
+### Tùy chỉnh Prompt
+
+Chỉnh `DAILY_PROMPT` trong `daily-report.mjs` nếu muốn thay đổi format báo cáo
+
+---
+
+## Troubleshooting
+
+| Lỗi | Giải pháp |
+|-----|-----------|
+| PAT invalid | Kiểm tra token, JIRA_DOMAIN không trailing slash |
+| API Error 500 | Anthropic server lỗi, script tự retry 3 lần |
+| Không nhận Telegram | Bot đã add vào group? Thread ID đúng? |
+
+---
+
+## License
+
+MIT
+
+---
+
+# English Version
+
+🤖 Claude Code skill for automated Jira daily reports sent via Telegram.
+
+**Only supports Jira Server/Data Center** (Self-Hosted) with PAT authentication.
+
+---
+
+## 🚀 Primary Usage: Q&A via Claude Code CLI
+
+**This is the main and simplest way to use this skill.**
+
+After installing the skill, ask Claude anything about Jira:
+
+```bash
+# Open Claude Code CLI
+claude
+
+# Then ask naturally:
+> Summarize team tasks from yesterday
+> Who is working on what in project PSV2?
+> List unfixed bugs in this sprint
+> Statistics of done tasks per person this week
+> Which tasks are blocked?
+```
+
+Claude will automatically use `jira-self-hosted` skill to query Jira and respond.
+
+**Benefits:**
+- No need to remember JQL syntax
+- Ask in natural language (Vietnamese/English)
+- Claude formats results for readability
+
+---
+
+> ⚠️ **IMPORTANT NOTE**
+>
+> The workflow and configuration in this repo are based on the author's specific setup. **You need to customize** the following settings to match your team's workflow:
+> - Project list (`JIRA_PROJECTS`)
+> - Workflow status names (`JIRA_STATUSES`)
+> - Excluded users list (`EXCLUDED_USERS`)
+> - Report format (`DAILY_PROMPT`)
+>
+> See **"Configuration"** section for details.
+
+---
+
+## Part 1: Using with Claude CLI (Interactive)
+
+### Requirements
+- [Claude Code CLI](https://github.com/anthropics/claude-code) installed and authenticated
+- Jira Server/Data Center v8.14.0+ (PAT support)
+
+### Install Skill
+
+```bash
+# Run installer
+./install-skill.sh
+
+# Configure Jira credentials
+nano ~/.claude/skills/jira-self-hosted/.env
+
+# Test connection
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+```
+
+### Get Jira PAT
+
+1. Login Jira → Profile → Personal Access Tokens
+2. Create token → Copy token
+3. Add to `.env` or `.env.dev`
+
+### Development Environment (Optional)
+
+To test daily report with dev Telegram, create `.env.dev` in project root:
+
+```bash
+nano .env.dev
+```
+
+**Priority:** `.env.dev` > `.env` (only applies to `run-daily-report.sh`)
+
+### How to Prompt
+
+```
+Daily report for yesterday.
+Projects: PSV2, DIC, DEPOT
+
+Use jira-self-hosted skill to:
+1. Query issues updated yesterday
+2. Group by status: Done, Resolved, Testing, In Progress
+3. List by person
+```
+
+---
+
+## Part 2: Automated Cron Job
+
+### Additional Requirements
+- Node.js 18+
+- Telegram Bot
+- Claude Code authenticated on server
+
+### Authentication
+
+```bash
+ssh user@server
+claude login
+claude --version
+```
+
+### Step 1: Configure Environment
+
+⚠️ **There are 2 separate .env files:**
+
+| File | Used by | Variables |
+|------|---------|-----------|
+| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
+
+**1a. Telegram .env (project root):**
+```bash
+# install-skill.sh tự động copy nếu chưa có
+nano .env
+```
+
+```bash
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_CHAT_ID=123456789            # For errors
+TELEGRAM_GROUP_CHAT_ID=-100123456789  # For success
+TELEGRAM_GROUP_THREAD_ID=123          # Thread ID (optional)
+```
+
+**1b. Jira .env (skill folder):**
+```bash
+# install-skill.sh tự động tạo từ env.claude template
+nano ~/.claude/skills/jira-self-hosted/.env
+```
+
+### Step 2: Get Telegram IDs
+
+**Bot Token:** Chat @BotFather → `/newbot` → copy token
+
+**Chat ID:** Chat @userinfobot → Copy "Id"
+
+**Group Chat ID:**
+1. Add bot to group
+2. Send message in group
+3. Visit: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+4. Find `"chat":{"id":-100...}`
+
+### Step 3: Install Skill
+
+```bash
+# Run installer (creates .env template if not exists)
+./install-skill.sh
+# Jira .env already created in Step 1b
+```
+
+### Step 4: Test
+
+```bash
+~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+./run-daily-report.sh
+```
+
+### Step 5: Setup Cron
+
+```bash
+crontab -e
+```
+
+Add (8am Vietnam = 1am UTC):
+
+```cron
+0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
+```
+
+### Configuration
+
+Edit `daily-report.mjs`:
+
+```javascript
+const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
+const MAIN_PROJECT = "PSV2";
+const EXCLUDED_USERS = ["Jira Automation", "Unassigned"];
+```
+
+### Workflow Statuses
+
+```javascript
+const JIRA_STATUSES = {
+  done: "Done",
+  resolved: "Resolved",   // Dev done, waiting QC
+  testing: "Testing",     // QC testing
+  inProgress: "In Progress",
+  toDo: "To Do",
+};
+```
+
+**Standard workflow:**
+```
+To Do → In Progress → Resolved → Testing → Done
+```
+
+⚠️ If your Jira uses different status names, update `JIRA_STATUSES` accordingly.
+
+### Workflow Logic Configuration (Bug/Reopen Detection)
+
+Claude understands workflow through **2 files**:
+
+| File | Purpose |
+|------|---------|
+| `skills/jira-self-hosted/SKILL.md` | Defines Bug, QC Reject, Reopen detection logic |
+| `daily-report.mjs` → `DAILY_PROMPT` | Output format instructions |
+
+**To change Bug/Reopen detection:**
+
+1. Open `skills/jira-self-hosted/SKILL.md`
+2. Find `## Defect Detection Logic` section
+3. Modify definitions to match your workflow
+
+Example - add Reopen logic:
+```markdown
+### Reopen Definition
+- Issue moved from Done → any other status = Reopen
+```
+
+Claude reads SKILL.md and applies this logic when generating reports.
+
+### Telegram Logic
+
+- ✅ Success → `TELEGRAM_GROUP_CHAT_ID`
+- ❌ Error → `TELEGRAM_CHAT_ID`
+
+---
+
+## Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| PAT invalid | Check token, JIRA_DOMAIN without trailing slash |
+| API Error 500 | Anthropic server error, script retries 3 times |
+| No Telegram message | Bot added to group? Thread ID correct? |
+</file>
+
+</files>

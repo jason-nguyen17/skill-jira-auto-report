@@ -16,6 +16,9 @@ const MAIN_PROJECT = "PSV2";
 const EXCLUDED_USERS = [
   "Jira Automation",
   "Unassigned",
+  "Nguyễn Minh Thuận",
+  "Phan Huỳnh Toàn Đức",
+  "Jason"
   // Thêm tên user cần bỏ qua ở đây
 ];
 
@@ -54,8 +57,34 @@ Dùng jira-self-hosted skill để query API lấy danh sách team members:
 GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
 Exclude: ${excludeList}
 
-BƯỚC 2 - LẤY ISSUES HÔM QUA:
-Query JQL: project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()
+BƯỚC 2 - LẤY ISSUES HÔM QUA VỚI CHANGELOG:
+Query JQL với expand=changelog:
+./jira-search.sh "project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()" -e changelog
+
+Hoặc API call:
+POST /rest/api/2/search
+{
+  "jql": "project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()",
+  "fields": ["key", "summary", "status", "assignee", "issuetype"],
+  "expand": ["changelog"]
+}
+
+BƯỚC 2.5 - PHÂN TÍCH BUGS TỪ CHANGELOG:
+Từ changelog của mỗi issue, lọc các thay đổi status trong ngày hôm qua:
+1. Lọc items có field === "status"
+2. Lọc items có created trong ngày hôm qua
+
+PHÂN LOẠI BUGS:
+| Pattern | Loại | Giải thích |
+|---------|------|------------|
+| Testing → Resolved/In Progress/To Do | QC Reject | QC phát hiện bug, trả về work state (KHÔNG phải Reopened) |
+| Testing → Reopened | Reopen | QC phát hiện bug, mở lại issue |
+| Resolved/Done → Reopened/In Progress/To Do | Reopen | Bug được mở lại từ trạng thái hoàn thành |
+| In Progress → Resolved (issue type = Bug) | Bug Fixed | Dev fix xong bug |
+
+ĐẾM:
+- bugs_found = số QC Reject + số Reopen trong ngày
+- bugs_fixed = số Bug type chuyển sang Resolved/Done trong ngày
 
 BƯỚC 3 - XÁC ĐỊNH NGƯỜI KHÔNG HOẠT ĐỘNG:
 So sánh team members với assignees có task hôm qua → list người không có task nào
@@ -74,6 +103,15 @@ FORMAT (copy chính xác cấu trúc này):
 <b>TỔNG QUAN</b>
 ✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
 
+<b>🐛 BUG SUMMARY</b>
+• Phát hiện: X (QC reject: Y, Reopen: Z)
+• Đã fix: X
+• Chi tiết:
+  - KEY: QC Reject (Author, HH:mm)
+  - KEY: Reopen (Author, HH:mm)
+  - KEY: Bug Fixed (Author, HH:mm)
+(hoặc "Không có bugs trong ngày" nếu không có)
+
 <b>THEO NGƯỜI</b>
 👤 Tên: ✅X 📋X 🧪X 🔄X
 
@@ -89,12 +127,11 @@ FORMAT (copy chính xác cấu trúc này):
 <b>CHI TIẾT IN PROGRESS</b>
 • KEY: Mô tả (Assignee)
 
-<b>🐛 BUG/REOPEN/REJECT</b>
-• KEY: Mô tả (Assignee) - trạng thái (hoặc "Không có")
-
 <b>GHI CHÚ</b>
 • 😴 Không hoạt động: Tên1, Tên2 (từ BƯỚC 3 - những người trong team nhưng không có task hôm nay)
-• Ghi chú khác nếu có`;
+• Ghi chú khác nếu có
+
+LƯU Ý: Nếu changelog trống hoặc không có, bỏ qua section BUG SUMMARY.`;
 
 function runClaudeCode(prompt) {
   return new Promise((resolve, reject) => {

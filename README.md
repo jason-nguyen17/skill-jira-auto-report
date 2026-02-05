@@ -6,6 +6,8 @@
 
 **Chỉ hỗ trợ Jira Server/Data Center** (Self-Hosted) với PAT authentication.
 
+**[Đầy đủ Tài liệu →](./docs)**
+
 ---
 
 ## 🚀 Cách sử dụng chính: Hỏi đáp qua Claude Code CLI
@@ -15,291 +17,214 @@
 Sau khi cài đặt skill, bạn có thể hỏi Claude bất kỳ điều gì về Jira:
 
 ```bash
-# Mở Claude Code CLI
 claude
-
-# Sau đó hỏi tự nhiên:
 > Tổng hợp task của team hôm qua
 > Ai đang làm gì trong project PSV2?
-> List các bug chưa fix trong sprint này
-> Thống kê số task done của từng người tuần này
-> Task nào đang bị block?
+> List các bug chưa fix?
 ```
 
-Claude sẽ tự động sử dụng skill `jira-self-hosted` để query Jira và trả lời.
-
-**Ưu điểm:**
-- Không cần nhớ JQL syntax
-- Hỏi bằng ngôn ngữ tự nhiên (Tiếng Việt/English)
-- Claude tự format kết quả dễ đọc
+Claude tự động sử dụng skill `jira-self-hosted` để query Jira. Không cần nhớ JQL syntax!
 
 ---
 
-## Cấu hình Workflow Logic (Bug/Reopen Detection)
+## ⚡ Nhanh Chóng Bắt Đầu
 
-Claude hiểu workflow thông qua **2 file**:
-
-| File | Mục đích |
-|------|----------|
-| `skills/jira-self-hosted/SKILL.md` | Định nghĩa logic detect Bug, QC Reject, Reopen |
-| `daily-report.mjs` → `DAILY_PROMPT` | Hướng dẫn cách format output |
-
-**Để thay đổi cách detect Bug/Reopen:**
-
-1. Mở `skills/jira-self-hosted/SKILL.md`
-2. Tìm section `## Defect Detection Logic`
-3. Chỉnh sửa định nghĩa theo workflow của bạn
-
-Ví dụ thêm Reopen logic:
-```markdown
-### Reopen Definition
-- Issue chuyển từ Done → bất kỳ status nào khác = Reopen
-```
-
-Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
-
----
-
-## Phần 1: Sử dụng với Claude CLI (Interactive)
-
-### Yêu cầu
-- [Claude Code CLI](https://github.com/anthropics/claude-code) đã cài đặt và authenticate
-- Jira Server/Data Center v8.14.0+ (hỗ trợ PAT)
-
-### Cài đặt Skill
+### Cài đặt (1 phút)
 
 ```bash
-# Chạy script cài đặt
 ./install-skill.sh
-
-# Cấu hình Jira credentials
-nano ~/.claude/skills/jira-self-hosted/.env
-
-# Test kết nối
-~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
+nano ~/.claude/skills/jira-self-hosted/.env  # Cấu hình Jira
 ```
 
-### Development Environment (Optional)
-
-Để test daily report với dev Telegram, tạo file `.env.dev` trong project root:
+### Sử dụng Interactive (Ngay lập tức)
 
 ```bash
-# Tạo .env.dev (ưu tiên hơn .env cho daily-report.mjs)
-nano .env.dev
-```
-
-**Priority:** `.env.dev` > `.env` (chỉ áp dụng cho `run-daily-report.sh`)
-
-### Lấy Jira PAT
-
-1. Đăng nhập Jira → Profile → Personal Access Tokens
-2. Create token → Copy token
-3. Thêm vào `.env` hoặc `.env.dev`
-
-### Cách Prompt
-
-Trong Claude CLI, bạn có thể prompt:
-
-```
-Daily report Jira hôm qua.
-Projects: PSV2, DIC, DEPOT
-
-Dùng jira-self-hosted skill để:
-1. Query issues updated hôm qua
-2. Group theo status: Done, Resolved, Testing, In Progress
-3. List theo người
-```
-
-Hoặc đơn giản:
-
-```
+claude
 /jira-self-hosted
-
-Tổng hợp hoạt động team hôm qua cho projects PSV2, DIC
+> Hỏi gì đó về Jira...
 ```
 
-### Tham khảo
+### Cài đặt Tự động (Optional, ~5 phút)
 
-- `skills/jira-self-hosted/references/jql-guide.md` - Cú pháp JQL
-- `skills/jira-self-hosted/references/api-reference.md` - API endpoints
+```bash
+nano .env                    # Cấu hình Telegram
+crontab -e                   # Thêm cron job (8 AM)
+0 1 * * * /path/to/run-daily-report.sh
+```
+
+Xem **[docs/project-overview-pdr.md](./docs/project-overview-pdr.md)** để biết chi tiết.
 
 ---
 
-## Phần 2: Chạy tự động với Cron
+## 📚 Documentation
 
-Chuyển đổi thành script chạy định kỳ, gửi report qua Telegram.
+For detailed information, see the `/docs` directory:
 
-### Yêu cầu thêm
-- Node.js 18+
-- Telegram Bot
-- Claude Code đã authenticate trên server
+| Document | Content |
+|----------|---------|
+| [project-overview-pdr.md](./docs/project-overview-pdr.md) | Features, requirements, acceptance criteria |
+| [system-architecture.md](./docs/system-architecture.md) | Architecture, data flow, integrations |
+| [code-standards.md](./docs/code-standards.md) | Coding conventions, code quality |
+| [codebase-summary.md](./docs/codebase-summary.md) | File inventory, component breakdown |
+| [development-roadmap.md](./docs/development-roadmap.md) | Phases, timeline, future features |
+| [project-changelog.md](./docs/project-changelog.md) | Release history, changes, versioning |
 
-### Authentication
+---
 
-Script sử dụng authentication của Claude Code CLI. Nếu chạy tự động trên server:
+## 🔧 Configuration
 
-```bash
-# SSH vào server
-ssh user@server
+### Two Configuration Files
 
-# Login Claude Code 1 lần
-claude login
+| File | Used By | Variables |
+|------|---------|-----------|
+| `.env` | daily-report.mjs | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | JIRA_DOMAIN, JIRA_PAT |
 
-# Verify
-claude --version
-```
-
-Sau khi login, Claude Code lưu credentials tại `~/.claude/` - cron job sẽ tự động sử dụng.
-
-### Bước 1: Cấu hình Environment
-
-⚠️ **Có 2 file .env riêng biệt:**
-
-| File | Dùng bởi | Biến |
-|------|----------|------|
-| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
-| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
-
-**1a. Telegram .env (project root):**
-```bash
-# install-skill.sh tự động copy nếu chưa có
-nano .env
-```
+### Quick Setup
 
 ```bash
-TELEGRAM_BOT_TOKEN=123456:ABC...      # Token từ @BotFather
-TELEGRAM_CHAT_ID=123456789            # Chat ID cho error notifications
-TELEGRAM_GROUP_CHAT_ID=-100123456789  # Group ID cho daily report
-TELEGRAM_GROUP_THREAD_ID=123          # Thread ID trong group (nếu có)
-```
-
-**1b. Jira .env (skill folder):**
-```bash
-# install-skill.sh tự động tạo từ env.claude template
-nano ~/.claude/skills/jira-self-hosted/.env
-```
-
-### Bước 2: Lấy Telegram IDs
-
-**Bot Token:**
-1. Chat với @BotFather → `/newbot` → copy token
-
-**Chat ID (private):**
-1. Chat với @userinfobot → Copy "Id"
-
-**Group Chat ID:**
-1. Thêm bot vào group
-2. Gửi message trong group
-3. Truy cập: `https://api.telegram.org/bot<TOKEN>/getUpdates`
-4. Tìm `"chat":{"id":-100...}`
-
-**Thread ID (nếu dùng Topics):**
-- Trong response `getUpdates`, tìm `"message_thread_id"`
-
-### Bước 3: Cài đặt Skill
-
-```bash
-# Chạy installer (tự tạo .env template nếu chưa có)
+# 1. Install skill
 ./install-skill.sh
-# Jira .env đã tạo ở Bước 1b
-```
 
-### Bước 4: Test
+# 2. Configure Jira
+nano ~/.claude/skills/jira-self-hosted/.env
+# Add: JIRA_DOMAIN, JIRA_PAT
 
-```bash
-# Test Jira
+# 3. Test connection
 ~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
-
-# Test report
-./run-daily-report.sh
 ```
 
-### Bước 5: Setup Cron
-
-```bash
-crontab -e
-```
-
-Thêm (8h sáng Vietnam = 1h UTC):
-
-```cron
-0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
-```
-
-### Cấu trúc
-
-| File | Mô tả |
-|------|-------|
-| `run-daily-report.sh` | Load .env, retry 3x, gọi Node |
-| `daily-report.mjs` | Spawn Claude CLI, gửi Telegram |
-
-### Logic gửi Telegram
-
-- ✅ Success → `TELEGRAM_GROUP_CHAT_ID` (thread nếu có)
-- ❌ Error → `TELEGRAM_CHAT_ID` (private)
-
-### Tùy chỉnh cấu hình
-
-Mở `daily-report.mjs` và chỉnh phần **CẤU HÌNH** ở đầu file:
+### Customize (daily-report.mjs)
 
 ```javascript
-// Danh sách project Jira cần theo dõi
-const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
-
-// Project chính để lấy danh sách team members
-const MAIN_PROJECT = "PSV2";
-
-// Danh sách user bỏ qua (không tính vào báo cáo)
-const EXCLUDED_USERS = [
-  "Jira Automation",
-  "Unassigned",
-  // Thêm tên user cần bỏ qua ở đây
-];
-```
-
-| Biến | Mô tả |
-|------|-------|
-| `JIRA_PROJECTS` | Mảng các project key cần theo dõi |
-| `MAIN_PROJECT` | Project dùng để query danh sách team members |
-| `EXCLUDED_USERS` | Users không tính (bot, automation, manager...)|
-| `JIRA_STATUSES` | Mapping tên status trong Jira của bạn |
-
-### Workflow Statuses
-
-```javascript
-const JIRA_STATUSES = {
-  done: "Done",           // Hoàn thành
-  resolved: "Resolved",   // Dev xong, chờ QC
-  testing: "Testing",     // QC đang test
-  inProgress: "In Progress", // Đang làm
-  toDo: "To Do",          // Chưa làm
+const JIRA_PROJECTS = ["PSV2", "DIC"];  // Projects to track
+const MAIN_PROJECT = "PSV2";             // Team member source
+const EXCLUDED_USERS = [];               // Users to skip
+const JIRA_STATUSES = {                  // Custom status names
+  done: "Done",
+  resolved: "Resolved",
+  testing: "Testing",
+  inProgress: "In Progress",
+  toDo: "To Do"
 };
 ```
 
-**Workflow chuẩn:**
+---
+
+## 🤖 Interactive Usage
+
+```bash
+claude
+> /jira-self-hosted
+> Tổng hợp task hôm qua
 ```
-To Do → In Progress → Resolved → Testing → Done
+
+Or simply ask without `/jira-self-hosted`:
+```bash
+> Ai đang làm gì trong PSV2?
+> List các bug chưa fix
+> Thống kê done tasks tuần này
 ```
 
-⚠️ **Lưu ý:** Nếu Jira của bạn dùng tên status khác (ví dụ: "QA Testing" thay vì "Testing"), hãy chỉnh `JIRA_STATUSES` cho phù hợp.
-
-### Tùy chỉnh Prompt
-
-Chỉnh `DAILY_PROMPT` trong `daily-report.mjs` nếu muốn thay đổi format báo cáo
+See [skills/jira-self-hosted/references/](./skills/jira-self-hosted/references/) for JQL syntax and API docs.
 
 ---
 
-## Troubleshooting
+## ⏰ Automated Reports (Optional)
 
-| Lỗi | Giải pháp |
-|-----|-----------|
-| PAT invalid | Kiểm tra token, JIRA_DOMAIN không trailing slash |
-| API Error 500 | Anthropic server lỗi, script tự retry 3 lần |
-| Không nhận Telegram | Bot đã add vào group? Thread ID đúng? |
+### Setup Telegram
+
+1. Chat @BotFather → `/newbot` → copy token
+2. Add bot to your group/private chat
+3. Configure in `.env`:
+   ```bash
+   TELEGRAM_BOT_TOKEN=123456:ABC...
+   TELEGRAM_CHAT_ID=123456789              # For errors
+   TELEGRAM_GROUP_CHAT_ID=-100123456789   # For reports
+   ```
+
+### Setup Cron
+
+```bash
+crontab -e
+# Add: 0 1 * * * /path/to/run-daily-report.sh
+```
+
+Run at 8 AM Vietnam time (1 AM UTC) daily.
+
+### Monitor
+
+```bash
+# Test report locally
+./run-daily-report.sh
+
+# Check logs
+tail -f daily-report.log
+```
+
+See [project-overview-pdr.md](./docs/project-overview-pdr.md) for detailed setup.
 
 ---
 
-## License
+## 📋 Features
+
+| Feature | Interactive | Automation |
+|---------|-------------|-----------|
+| **Query Jira** | ✅ Any time | ✅ Daily |
+| **JQL Syntax** | Natural language | Configured |
+| **Output Format** | Claude's choice | HTML/Telegram |
+| **Notifications** | Console | Telegram |
+
+---
+
+## ⚙️ Requirements
+
+- Claude Code CLI (installed & authenticated)
+- Jira Server/Data Center v8.14.0+ (PAT support)
+- Node.js 18+ (for automation only)
+- curl, jq (system commands)
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| PAT invalid | Check token in `~/.claude/skills/jira-self-hosted/.env` |
+| Jira not found | Verify JIRA_DOMAIN (no trailing slash) |
+| Script timeout | Check network, may need to increase TIMEOUT |
+| Telegram error | Verify bot token and chat IDs in `.env` |
+
+See [system-architecture.md](./docs/system-architecture.md) for detailed error handling.
+
+---
+
+## 📖 Customization
+
+- **Defect Detection:** Edit `skills/jira-self-hosted/SKILL.md`
+- **Report Format:** Edit `DAILY_PROMPT` in `daily-report.mjs`
+- **Workflow Names:** Customize `JIRA_STATUSES` in `daily-report.mjs`
+
+See [code-standards.md](./docs/code-standards.md) for conventions.
+
+---
+
+## 🐛 Defect Detection Logic
+
+Báo cáo tự động phân loại bugs dựa trên changelog transitions:
+
+| Pattern | Loại | Giải thích |
+|---------|------|------------|
+| Testing → Resolved/In Progress/To Do | QC Reject | QC trả về work state |
+| Testing → Reopened | Reopen | QC mở lại issue |
+| Resolved/Done → Reopened | Reopen | Bug mở lại từ done |
+| In Progress → Resolved (Bug type) | Bug Fixed | Dev fix xong |
+
+Chỉnh sửa trong `daily-report.mjs` (DAILY_PROMPT) hoặc `skills/jira-self-hosted/SKILL.md`.
+
+---
+
+## 📄 License
 
 MIT
 
@@ -311,241 +236,204 @@ MIT
 
 **Only supports Jira Server/Data Center** (Self-Hosted) with PAT authentication.
 
+**[Full Documentation →](./docs)**
+
 ---
 
-## 🚀 Primary Usage: Q&A via Claude Code CLI
+## 🚀 Quick Start
 
-**This is the main and simplest way to use this skill.**
-
-After installing the skill, ask Claude anything about Jira:
+### Install (1 min)
 
 ```bash
-# Open Claude Code CLI
+./install-skill.sh
+nano ~/.claude/skills/jira-self-hosted/.env  # Configure Jira
+```
+
+### Use Interactive (Instantly)
+
+```bash
 claude
-
-# Then ask naturally:
-> Summarize team tasks from yesterday
-> Who is working on what in project PSV2?
-> List unfixed bugs in this sprint
-> Statistics of done tasks per person this week
-> Which tasks are blocked?
+> Ask anything about Jira in natural language
 ```
 
-Claude will automatically use `jira-self-hosted` skill to query Jira and respond.
+### Setup Automation (Optional, ~5 min)
 
-**Benefits:**
-- No need to remember JQL syntax
-- Ask in natural language (Vietnamese/English)
-- Claude formats results for readability
+```bash
+nano .env                  # Configure Telegram
+crontab -e                 # Add cron job (8 AM)
+0 1 * * * /path/to/run-daily-report.sh
+```
+
+See **[docs/project-overview-pdr.md](./docs/project-overview-pdr.md)** for details.
 
 ---
 
-> ⚠️ **IMPORTANT NOTE**
->
-> The workflow and configuration in this repo are based on the author's specific setup. **You need to customize** the following settings to match your team's workflow:
-> - Project list (`JIRA_PROJECTS`)
-> - Workflow status names (`JIRA_STATUSES`)
-> - Excluded users list (`EXCLUDED_USERS`)
-> - Report format (`DAILY_PROMPT`)
->
-> See **"Configuration"** section for details.
+## 📚 Documentation
+
+For detailed information, see the `/docs` directory:
+
+| Document | Content |
+|----------|---------|
+| [project-overview-pdr.md](./docs/project-overview-pdr.md) | Features, requirements, acceptance criteria |
+| [system-architecture.md](./docs/system-architecture.md) | Architecture, data flow, integrations |
+| [code-standards.md](./docs/code-standards.md) | Coding conventions, code quality |
+| [codebase-summary.md](./docs/codebase-summary.md) | File inventory, component breakdown |
+| [development-roadmap.md](./docs/development-roadmap.md) | Phases, timeline, future features |
+| [project-changelog.md](./docs/project-changelog.md) | Release history, changes, versioning |
 
 ---
 
-## Part 1: Using with Claude CLI (Interactive)
+## 🔧 Configuration
 
-### Requirements
-- [Claude Code CLI](https://github.com/anthropics/claude-code) installed and authenticated
-- Jira Server/Data Center v8.14.0+ (PAT support)
+### Two Configuration Files
 
-### Install Skill
-
-```bash
-# Run installer
-./install-skill.sh
-
-# Configure Jira credentials
-nano ~/.claude/skills/jira-self-hosted/.env
-
-# Test connection
-~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
-```
-
-### Get Jira PAT
-
-1. Login Jira → Profile → Personal Access Tokens
-2. Create token → Copy token
-3. Add to `.env` or `.env.dev`
-
-### Development Environment (Optional)
-
-To test daily report with dev Telegram, create `.env.dev` in project root:
-
-```bash
-nano .env.dev
-```
-
-**Priority:** `.env.dev` > `.env` (only applies to `run-daily-report.sh`)
-
-### How to Prompt
-
-```
-Daily report for yesterday.
-Projects: PSV2, DIC, DEPOT
-
-Use jira-self-hosted skill to:
-1. Query issues updated yesterday
-2. Group by status: Done, Resolved, Testing, In Progress
-3. List by person
-```
-
----
-
-## Part 2: Automated Cron Job
-
-### Additional Requirements
-- Node.js 18+
-- Telegram Bot
-- Claude Code authenticated on server
-
-### Authentication
-
-```bash
-ssh user@server
-claude login
-claude --version
-```
-
-### Step 1: Configure Environment
-
-⚠️ **There are 2 separate .env files:**
-
-| File | Used by | Variables |
+| File | Used By | Variables |
 |------|---------|-----------|
-| `./.env` | `daily-report.mjs` | `TELEGRAM_*` |
-| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | `JIRA_*` |
+| `.env` | daily-report.mjs | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID |
+| `~/.claude/skills/jira-self-hosted/.env` | Skill scripts | JIRA_DOMAIN, JIRA_PAT |
 
-**1a. Telegram .env (project root):**
-```bash
-# install-skill.sh tự động copy nếu chưa có
-nano .env
-```
+### Quick Setup
 
 ```bash
-TELEGRAM_BOT_TOKEN=123456:ABC...
-TELEGRAM_CHAT_ID=123456789            # For errors
-TELEGRAM_GROUP_CHAT_ID=-100123456789  # For success
-TELEGRAM_GROUP_THREAD_ID=123          # Thread ID (optional)
-```
-
-**1b. Jira .env (skill folder):**
-```bash
-# install-skill.sh tự động tạo từ env.claude template
-nano ~/.claude/skills/jira-self-hosted/.env
-```
-
-### Step 2: Get Telegram IDs
-
-**Bot Token:** Chat @BotFather → `/newbot` → copy token
-
-**Chat ID:** Chat @userinfobot → Copy "Id"
-
-**Group Chat ID:**
-1. Add bot to group
-2. Send message in group
-3. Visit: `https://api.telegram.org/bot<TOKEN>/getUpdates`
-4. Find `"chat":{"id":-100...}`
-
-### Step 3: Install Skill
-
-```bash
-# Run installer (creates .env template if not exists)
+# 1. Install skill
 ./install-skill.sh
-# Jira .env already created in Step 1b
-```
 
-### Step 4: Test
+# 2. Configure Jira
+nano ~/.claude/skills/jira-self-hosted/.env
+# Add: JIRA_DOMAIN, JIRA_PAT
 
-```bash
+# 3. Test connection
 ~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
-./run-daily-report.sh
 ```
 
-### Step 5: Setup Cron
-
-```bash
-crontab -e
-```
-
-Add (8am Vietnam = 1am UTC):
-
-```cron
-0 1 * * * /path/to/skill-jira-auto-report/run-daily-report.sh >> /path/to/daily-report.log 2>&1
-```
-
-### Configuration
-
-Edit `daily-report.mjs`:
+### Customize (daily-report.mjs)
 
 ```javascript
-const JIRA_PROJECTS = ["PSV2", "DIC", "DEPOT", "AVA"];
-const MAIN_PROJECT = "PSV2";
-const EXCLUDED_USERS = ["Jira Automation", "Unassigned"];
-```
-
-### Workflow Statuses
-
-```javascript
-const JIRA_STATUSES = {
+const JIRA_PROJECTS = ["PSV2", "DIC"];  // Projects to track
+const MAIN_PROJECT = "PSV2";             // Team member source
+const EXCLUDED_USERS = [];               // Users to skip
+const JIRA_STATUSES = {                  // Custom status names
   done: "Done",
-  resolved: "Resolved",   // Dev done, waiting QC
-  testing: "Testing",     // QC testing
+  resolved: "Resolved",
+  testing: "Testing",
   inProgress: "In Progress",
-  toDo: "To Do",
+  toDo: "To Do"
 };
 ```
 
-**Standard workflow:**
-```
-To Do → In Progress → Resolved → Testing → Done
-```
+---
 
-⚠️ If your Jira uses different status names, update `JIRA_STATUSES` accordingly.
+## 🤖 Interactive Usage
 
-### Workflow Logic Configuration (Bug/Reopen Detection)
-
-Claude understands workflow through **2 files**:
-
-| File | Purpose |
-|------|---------|
-| `skills/jira-self-hosted/SKILL.md` | Defines Bug, QC Reject, Reopen detection logic |
-| `daily-report.mjs` → `DAILY_PROMPT` | Output format instructions |
-
-**To change Bug/Reopen detection:**
-
-1. Open `skills/jira-self-hosted/SKILL.md`
-2. Find `## Defect Detection Logic` section
-3. Modify definitions to match your workflow
-
-Example - add Reopen logic:
-```markdown
-### Reopen Definition
-- Issue moved from Done → any other status = Reopen
+```bash
+claude
+> Ask anything about Jira in natural language
 ```
 
-Claude reads SKILL.md and applies this logic when generating reports.
+Or use skill explicitly:
+```bash
+> /jira-self-hosted
+> Summarize yesterday's tasks
+```
 
-### Telegram Logic
-
-- ✅ Success → `TELEGRAM_GROUP_CHAT_ID`
-- ❌ Error → `TELEGRAM_CHAT_ID`
+See [skills/jira-self-hosted/references/](./skills/jira-self-hosted/references/) for JQL syntax and API docs.
 
 ---
 
-## Troubleshooting
+## ⏰ Automated Reports (Optional)
 
-| Error | Solution |
-|-------|----------|
-| PAT invalid | Check token, JIRA_DOMAIN without trailing slash |
-| API Error 500 | Anthropic server error, script retries 3 times |
-| No Telegram message | Bot added to group? Thread ID correct? |
+### Setup Telegram
+
+1. Chat @BotFather → `/newbot` → copy token
+2. Add bot to group/chat
+3. Configure in `.env`:
+   ```bash
+   TELEGRAM_BOT_TOKEN=123456:ABC...
+   TELEGRAM_CHAT_ID=123456789              # For errors
+   TELEGRAM_GROUP_CHAT_ID=-100123456789   # For reports
+   ```
+
+### Setup Cron
+
+```bash
+crontab -e
+# Add: 0 1 * * * /path/to/run-daily-report.sh
+```
+
+Runs daily at 8 AM Vietnam time (1 AM UTC).
+
+### Monitor
+
+```bash
+# Test report
+./run-daily-report.sh
+
+# Check logs
+tail -f daily-report.log
+```
+
+See [project-overview-pdr.md](./docs/project-overview-pdr.md) for detailed setup.
+
+---
+
+## 📋 Features
+
+| Feature | Interactive | Automation |
+|---------|-------------|-----------|
+| **Query Jira** | ✅ Anytime | ✅ Daily |
+| **Natural Language** | ✅ Yes | Settings-based |
+| **Output Format** | Claude's choice | HTML/Telegram |
+| **Notifications** | Console | Telegram |
+
+---
+
+## ⚙️ Requirements
+
+- Claude Code CLI (installed & authenticated)
+- Jira Server/Data Center v8.14.0+ (PAT support)
+- Node.js 18+ (for automation only)
+- curl, jq (system commands)
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| PAT invalid | Check token in `~/.claude/skills/jira-self-hosted/.env` |
+| Jira not found | Verify JIRA_DOMAIN (no trailing slash) |
+| Script timeout | Check network connectivity |
+| Telegram error | Verify bot token and chat IDs in `.env` |
+
+See [system-architecture.md](./docs/system-architecture.md) for detailed error handling.
+
+---
+
+## 📖 Customization
+
+- **Defect Detection:** Edit `skills/jira-self-hosted/SKILL.md`
+- **Report Format:** Edit `DAILY_PROMPT` in `daily-report.mjs`
+- **Workflow Names:** Customize `JIRA_STATUSES` in `daily-report.mjs`
+
+See [code-standards.md](./docs/code-standards.md) for conventions.
+
+---
+
+## 🐛 Defect Detection Logic
+
+Auto-reports classify bugs based on changelog transitions:
+
+| Pattern | Type | Description |
+|---------|------|-------------|
+| Testing → Resolved/In Progress/To Do | QC Reject | QC returns to work state |
+| Testing → Reopened | Reopen | QC reopens issue |
+| Resolved/Done → Reopened | Reopen | Bug reopened from done |
+| In Progress → Resolved (Bug type) | Bug Fixed | Dev completed fix |
+
+Customize in `daily-report.mjs` (DAILY_PROMPT) or `skills/jira-self-hosted/SKILL.md`.
+
+---
+
+## 📄 License
+
+MIT

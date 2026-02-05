@@ -2,3 +2,7 @@
 .env
 *.log
 node_modules/
+.vscode
+.cursor
+docs
+plans

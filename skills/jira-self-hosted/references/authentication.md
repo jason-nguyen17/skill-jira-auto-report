@@ -30,11 +30,13 @@ Personal Access Tokens (PAT) provide secure, token-based authentication for Jira
 ## Usage
 
 ### Header Format
+
 ```
 Authorization: Bearer <your_pat_token>
 ```
 
 ### cURL Example
+
 ```bash
 curl -s \
   -H "Authorization: Bearer $JIRA_PAT" \
@@ -43,6 +45,7 @@ curl -s \
 ```
 
 ### Environment Variables
+
 ```bash
 export JIRA_DOMAIN="https://your-jira-instance.com"
 export JIRA_PAT="your_personal_access_token"
@@ -60,12 +63,15 @@ export JIRA_PAT="your_personal_access_token"
 ## Token Management
 
 ### View Active Tokens
+
 Profile > Personal Access Tokens > View all tokens
 
 ### Revoke Token
+
 Profile > Personal Access Tokens > Select token > Revoke
 
 ### Token Rotation
+
 1. Create new token before old expires
 2. Update integrations with new token
 3. Revoke old token
@@ -73,6 +79,7 @@ Profile > Personal Access Tokens > Select token > Revoke
 ## Troubleshooting
 
 ### 401 Unauthorized
+
 - Token expired or invalid
 - Token not properly formatted in header
 - Missing "Bearer " prefix
@@ -80,18 +87,21 @@ Profile > Personal Access Tokens > Select token > Revoke
 **Fix**: Verify token, regenerate if expired
 
 ### 403 Forbidden
+
 - User lacks project/issue permissions
 - Token scope insufficient
 
 **Fix**: Check user permissions in Jira admin
 
 ### PAT Feature Disabled
+
 - Security app may block PAT authentication
 - Admin settings may disable PATs
 
 **Fix**: Contact Jira admin to enable PAT support
 
 ### Connection Errors
+
 - Incorrect JIRA_DOMAIN URL
 - Missing https:// prefix
 - Firewall/VPN blocking access
