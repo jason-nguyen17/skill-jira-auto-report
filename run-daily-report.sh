@@ -1,11 +1,16 @@
 #!/bin/bash
 
-# Load environment variables
+# Load environment variables: .env.dev (dev) > .env (prod)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -a
-source /data/tools/claude/.env
+if [[ -f "$SCRIPT_DIR/.env.dev" ]]; then
+  source "$SCRIPT_DIR/.env.dev"
+elif [[ -f "$SCRIPT_DIR/.env" ]]; then
+  source "$SCRIPT_DIR/.env"
+fi
 set +a
 
-cd /data/tools/claude
+cd "$SCRIPT_DIR"
 
 # Retry logic - max 3 attempts with 60s delay
 MAX_RETRIES=3

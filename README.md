@@ -67,24 +67,32 @@ Claude sẽ đọc SKILL.md và áp dụng logic này khi generate report.
 ### Cài đặt Skill
 
 ```bash
-# Copy skill vào thư mục Claude
-cp -r skills/jira-self-hosted ~/.claude/skills/
+# Chạy script cài đặt
+./install-skill.sh
 
-# Tạo file .env cho Jira
-cat > ~/.claude/skills/jira-self-hosted/.env << EOF
-JIRA_DOMAIN=https://your-jira-instance.com
-JIRA_PAT=your_personal_access_token
-EOF
+# Cấu hình Jira credentials
+nano ~/.claude/skills/jira-self-hosted/.env
 
 # Test kết nối
 ~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
 ```
 
+### Development Environment (Optional)
+
+Để test daily report với dev Telegram, tạo file `.env.dev` trong project root:
+
+```bash
+# Tạo .env.dev (ưu tiên hơn .env cho daily-report.mjs)
+nano .env.dev
+```
+
+**Priority:** `.env.dev` > `.env` (chỉ áp dụng cho `run-daily-report.sh`)
+
 ### Lấy Jira PAT
 
 1. Đăng nhập Jira → Profile → Personal Access Tokens
 2. Create token → Copy token
-3. Thêm vào `.env`
+3. Thêm vào `.env` hoặc `.env.dev`
 
 ### Cách Prompt
 
@@ -152,7 +160,7 @@ Sau khi login, Claude Code lưu credentials tại `~/.claude/` - cron job sẽ t
 
 **1a. Telegram .env (project root):**
 ```bash
-cp .env.example .env
+# install-skill.sh tự động copy nếu chưa có
 nano .env
 ```
 
@@ -165,10 +173,8 @@ TELEGRAM_GROUP_THREAD_ID=123          # Thread ID trong group (nếu có)
 
 **1b. Jira .env (skill folder):**
 ```bash
-cat > ~/.claude/skills/jira-self-hosted/.env << EOF
-JIRA_DOMAIN=https://your-jira.com
-JIRA_PAT=your_personal_access_token
-EOF
+# install-skill.sh tự động tạo từ env.claude template
+nano ~/.claude/skills/jira-self-hosted/.env
 ```
 
 ### Bước 2: Lấy Telegram IDs
@@ -191,7 +197,8 @@ EOF
 ### Bước 3: Cài đặt Skill
 
 ```bash
-cp -r skills/jira-self-hosted ~/.claude/skills/
+# Chạy installer (tự tạo .env template nếu chưa có)
+./install-skill.sh
 # Jira .env đã tạo ở Bước 1b
 ```
 
@@ -352,13 +359,13 @@ Claude will automatically use `jira-self-hosted` skill to query Jira and respond
 ### Install Skill
 
 ```bash
-cp -r skills/jira-self-hosted ~/.claude/skills/
+# Run installer
+./install-skill.sh
 
-cat > ~/.claude/skills/jira-self-hosted/.env << EOF
-JIRA_DOMAIN=https://your-jira-instance.com
-JIRA_PAT=your_personal_access_token
-EOF
+# Configure Jira credentials
+nano ~/.claude/skills/jira-self-hosted/.env
 
+# Test connection
 ~/.claude/skills/jira-self-hosted/scripts/jira-auth-test.sh
 ```
 
@@ -366,7 +373,17 @@ EOF
 
 1. Login Jira → Profile → Personal Access Tokens
 2. Create token → Copy token
-3. Add to `.env`
+3. Add to `.env` or `.env.dev`
+
+### Development Environment (Optional)
+
+To test daily report with dev Telegram, create `.env.dev` in project root:
+
+```bash
+nano .env.dev
+```
+
+**Priority:** `.env.dev` > `.env` (only applies to `run-daily-report.sh`)
 
 ### How to Prompt
 
@@ -408,7 +425,7 @@ claude --version
 
 **1a. Telegram .env (project root):**
 ```bash
-cp .env.example .env
+# install-skill.sh tự động copy nếu chưa có
 nano .env
 ```
 
@@ -421,10 +438,8 @@ TELEGRAM_GROUP_THREAD_ID=123          # Thread ID (optional)
 
 **1b. Jira .env (skill folder):**
 ```bash
-cat > ~/.claude/skills/jira-self-hosted/.env << EOF
-JIRA_DOMAIN=https://your-jira.com
-JIRA_PAT=your_personal_access_token
-EOF
+# install-skill.sh tự động tạo từ env.claude template
+nano ~/.claude/skills/jira-self-hosted/.env
 ```
 
 ### Step 2: Get Telegram IDs
@@ -442,7 +457,8 @@ EOF
 ### Step 3: Install Skill
 
 ```bash
-cp -r skills/jira-self-hosted ~/.claude/skills/
+# Run installer (creates .env template if not exists)
+./install-skill.sh
 # Jira .env already created in Step 1b
 ```
 
