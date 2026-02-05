@@ -1,5 +1,7 @@
 # skill-jira-auto-report
 
+**English below**
+
 🤖 Claude Code skill để tạo báo cáo Jira tự động và gửi qua Telegram.
 
 **Chỉ hỗ trợ Jira Server/Data Center** (Self-Hosted) với PAT authentication.
