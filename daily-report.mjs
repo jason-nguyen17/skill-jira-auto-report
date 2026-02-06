@@ -66,14 +66,18 @@ Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có
 NHÓM B - TẤT CẢ ISSUES CÓ BẤT KỲ CHANGELOG HÔM QUA:
 Issues có ít nhất 1 changelog entry (bất kỳ field nào) với created trong ngày hôm qua → dùng để xác định người hoạt động.
 
-BƯỚC 3 - PHÂN TÍCH BUGS TỪ CHANGELOG (NHÓM A):
-Lọc status transitions trong ngày hôm qua:
-QUAN TRỌNG: CHỈ đếm bugs khi author KHÔNG PHẢI là "Jira Automation". Transitions bởi Jira Automation là workflow tự động, KHÔNG phải QC reject thật.
-- QC Reject: Testing → Resolved/In Progress/To Do (author != Jira Automation)
-- Reopen: Testing → Reopened HOẶC Resolved/Done → Reopened/In Progress/To Do (author != Jira Automation)
-- Bug Fixed: In Progress → Resolved (issue type = Bug)
-- bugs_found = QC Reject + Reopen
-- bugs_fixed = Bug type chuyển sang Resolved/Done
+BƯỚC 3 - PHÂN TÍCH BUGS (NHÓM A):
+Có 2 nguồn bugs:
+
+LOẠI 1 - TRANSITION BUGS (từ changelog hôm qua, author != Jira Automation):
+- QC Reject: Testing → Resolved/In Progress/To Do
+- Reopen: Testing → Reopened HOẶC Resolved/Done → Reopened/In Progress/To Do
+
+LOẠI 2 - BUG TYPE (issuetype = Bug có status transition hôm qua):
+- Tất cả issues trong NHÓM A có issuetype = "Bug"
+
+Gộp cả 2 loại vào BUG SUMMARY, mỗi bug kèm status hiện tại.
+Một issue có thể thuộc cả 2 loại (vừa là Bug type vừa bị Reopen) → chỉ liệt kê 1 lần.
 
 BƯỚC 4 - LẤY TEAM MEMBERS:
 GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
@@ -109,10 +113,13 @@ FORMAT:
 (Mỗi người hoạt động 1 dòng. CHỈ hiển thị status có transition > 0, bỏ status = 0. Nếu người hoạt động nhưng không có transition nào thì chỉ hiện 👤 Tên. 😴 = gộp tất cả người không hoạt động trên 1 dòng)
 
 <b>🐛 BUG SUMMARY</b>
-• Phát hiện: X (QC reject: Y, Reopen: Z)
-• Đã fix: X
+• Transition bugs: X (QC reject: Y, Reopen: Z)
+• Bug type: X
 • Chi tiết:
-  - KEY: Loại (Author, HH:mm) — fromStatus → toStatus
+  - KEY: [Loại] Mô tả — status hiện tại: StatusName
+  VD: AVA-547: [Reopen] Backend — status hiện tại: In Progress
+  VD: PSV2-922: [Bug type] Lịch sử tồn kho — status hiện tại: Done
+(Nếu issue thuộc cả 2 loại, ghi cả 2 tag. Hiển thị status hiện tại để biết đã fix chưa)
 (hoặc "• Không có bugs trong ngày")
 
 <b>✅ CHI TIẾT DONE</b>
