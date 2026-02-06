@@ -103,9 +103,8 @@ FORMAT:
 <b>👥 THÀNH VIÊN</b>
 👤 Tên1: →📋2 →🔄3
 👤 Tên2: →🔄1
-😴 Tên3
-😴 Tên4
-(Mỗi người 1 dòng. CHỈ hiển thị status có transition > 0, bỏ status = 0. Nếu người hoạt động nhưng không có transition nào thì chỉ hiện 👤 Tên. 😴 = không hoạt động)
+😴 Không hoạt động: Tên3, Tên4
+(Mỗi người hoạt động 1 dòng. CHỈ hiển thị status có transition > 0, bỏ status = 0. Nếu người hoạt động nhưng không có transition nào thì chỉ hiện 👤 Tên. 😴 = gộp tất cả người không hoạt động trên 1 dòng)
 
 <b>🐛 BUG SUMMARY</b>
 • Phát hiện: X (QC reject: Y, Reopen: Z)
