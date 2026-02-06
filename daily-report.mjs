@@ -68,8 +68,9 @@ Issues có ít nhất 1 changelog entry (bất kỳ field nào) với created tr
 
 BƯỚC 3 - PHÂN TÍCH BUGS TỪ CHANGELOG (NHÓM A):
 Lọc status transitions trong ngày hôm qua:
-- QC Reject: Testing → Resolved/In Progress/To Do
-- Reopen: Testing → Reopened HOẶC Resolved/Done → Reopened/In Progress/To Do
+QUAN TRỌNG: CHỈ đếm bugs khi author KHÔNG PHẢI là "Jira Automation". Transitions bởi Jira Automation là workflow tự động, KHÔNG phải QC reject thật.
+- QC Reject: Testing → Resolved/In Progress/To Do (author != Jira Automation)
+- Reopen: Testing → Reopened HOẶC Resolved/Done → Reopened/In Progress/To Do (author != Jira Automation)
 - Bug Fixed: In Progress → Resolved (issue type = Bug)
 - bugs_found = QC Reject + Reopen
 - bugs_fixed = Bug type chuyển sang Resolved/Done
