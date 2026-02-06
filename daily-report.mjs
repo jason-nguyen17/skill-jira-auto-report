@@ -113,13 +113,10 @@ FORMAT:
 (Mỗi người hoạt động 1 dòng. CHỈ hiển thị status có transition > 0, bỏ status = 0. Nếu người hoạt động nhưng không có transition nào thì chỉ hiện 👤 Tên. 😴 = gộp tất cả người không hoạt động trên 1 dòng)
 
 <b>🐛 BUG SUMMARY</b>
-• Transition bugs: X (QC reject: Y, Reopen: Z)
-• Bug type: X
+• Tổng: X bugs
 • Chi tiết:
-  - KEY: [Loại] Mô tả — status hiện tại: StatusName
-  VD: AVA-547: [Reopen] Backend — status hiện tại: In Progress
-  VD: PSV2-922: [Bug type] Lịch sử tồn kho — status hiện tại: Done
-(Nếu issue thuộc cả 2 loại, ghi cả 2 tag. Hiển thị status hiện tại để biết đã fix chưa)
+  - KEY: Mô tả (Assignee) — status: StatusName
+(Gộp cả Bug type + QC Reject + Reopen, không trùng. Kèm status hiện tại)
 (hoặc "• Không có bugs trong ngày")
 
 <b>✅ CHI TIẾT DONE</b>
