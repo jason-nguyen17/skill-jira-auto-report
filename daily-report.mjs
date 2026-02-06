@@ -101,11 +101,11 @@ FORMAT:
 → Reopened: X
 
 <b>👥 THÀNH VIÊN</b>
-👤 Tên1: ✅X 📋X 🧪X 🔄X
-👤 Tên2: ✅X 📋X 🧪X 🔄X
+👤 Tên1: →✅X →📋X →🧪X →🔄X
+👤 Tên2: →✅X →📋X →🧪X →🔄X
 😴 Tên3
 😴 Tên4
-(Mỗi người 1 dòng. 👤 = hoạt động + số liệu NHÓM A status cuối. 😴 = không hoạt động. LUÔN hiển thị đủ 4 cột kể cả = 0)
+(Mỗi người 1 dòng. 👤 = hoạt động. Số liệu = đếm số lần transition đến mỗi status trong ngày, KHÔNG phải status cuối. 😴 = không hoạt động)
 
 <b>🐛 BUG SUMMARY</b>
 • Phát hiện: X (QC reject: Y, Reopen: Z)
