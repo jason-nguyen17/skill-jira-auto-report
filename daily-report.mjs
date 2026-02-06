@@ -50,20 +50,21 @@ const DAILY_PROMPT = `Tạo báo cáo Jira hàng ngày. LUÔN dùng tiếng Vi�
 
 PROJECTS: ${projectList}
 
-BƯỚC 1 - LẤY ISSUES HÔM QUA VỚI CHANGELOG:
-Dùng jira-self-hosted skill:
-./jira-search.sh "project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()" -e changelog
+BƯỚC 1 - LẤY ISSUES VỚI CHANGELOG:
+Dùng jira-self-hosted skill (KHÔNG giới hạn upper bound vì issue có thể updated hôm nay nhưng transition hôm qua):
+./jira-search.sh "project IN (${projectList}) AND updated >= startOfDay(-1)" -e changelog
 
 BƯỚC 2 - PHÂN LOẠI ISSUES:
-Từ kết quả JQL, chia thành 2 nhóm:
+Từ kết quả JQL, duyệt changelog.histories của mỗi issue:
+- Lọc entries có created trong ngày HÔM QUA (không phải hôm nay hay trước đó)
+- Trong các entries đó, lọc items có field === "status"
 
 NHÓM A - ISSUES CÓ STATUS TRANSITION HÔM QUA:
-Duyệt changelog.histories, lọc entries có created trong ngày hôm qua VÀ items chứa field === "status".
-CHỈ những issue có ÍT NHẤT 1 status transition hôm qua mới được tính vào báo cáo status.
-Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có status transition → KHÔNG đưa vào.
+CHỈ những issue có ÍT NHẤT 1 status transition với created trong ngày hôm qua.
+Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có status transition hôm qua → KHÔNG đưa vào.
 
-NHÓM B - TẤT CẢ ISSUES UPDATED HÔM QUA:
-Toàn bộ kết quả JQL → dùng để xác định người hoạt động.
+NHÓM B - TẤT CẢ ISSUES CÓ BẤT KỲ CHANGELOG HÔM QUA:
+Issues có ít nhất 1 changelog entry (bất kỳ field nào) với created trong ngày hôm qua → dùng để xác định người hoạt động.
 
 BƯỚC 3 - PHÂN TÍCH BUGS TỪ CHANGELOG (NHÓM A):
 Lọc status transitions trong ngày hôm qua:
