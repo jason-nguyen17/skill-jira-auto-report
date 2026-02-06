@@ -46,108 +46,82 @@ const TELEGRAM_GROUP_THREAD_ID = process.env.TELEGRAM_GROUP_THREAD_ID; // Thread
 const projectList = JIRA_PROJECTS.join(", ");
 const excludeList = EXCLUDED_USERS.map(u => `"${u}"`).join(", ");
 
-const DAILY_PROMPT = `[CRITICAL INSTRUCTION] Your ENTIRE response must start with "📊" - NO other text before it. Do NOT write any thinking, explanation, or narration like "Tôi đã có dữ liệu", "Bây giờ tôi sẽ", etc. ONLY output the report.
-
-Daily report Jira hôm nay.
+const DAILY_PROMPT = `Tạo báo cáo Jira hàng ngày. LUÔN dùng tiếng Việt. Output CHỈ là báo cáo theo FORMAT bên dưới.
 
 PROJECTS: ${projectList}
 
-BƯỚC 1 - LẤY TEAM MEMBERS:
-Dùng jira-self-hosted skill để query API lấy danh sách team members:
-GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
-Exclude: ${excludeList}
-
-BƯỚC 2 - LẤY ISSUES HÔM QUA VỚI CHANGELOG:
-Query JQL với expand=changelog:
+BƯỚC 1 - LẤY ISSUES HÔM QUA VỚI CHANGELOG:
+Dùng jira-self-hosted skill:
 ./jira-search.sh "project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()" -e changelog
 
-Hoặc API call:
-POST /rest/api/2/search
-{
-  "jql": "project IN (${projectList}) AND updated >= startOfDay(-1) AND updated < startOfDay()",
-  "fields": ["key", "summary", "status", "assignee", "issuetype"],
-  "expand": ["changelog"]
-}
-
-BƯỚC 2.5 - PHÂN LOẠI ISSUES:
+BƯỚC 2 - PHÂN LOẠI ISSUES:
 Từ kết quả JQL, chia thành 2 nhóm:
 
 NHÓM A - ISSUES CÓ STATUS TRANSITION HÔM QUA:
-Duyệt changelog.histories của mỗi issue, lọc entries có:
-  1. created trong ngày hôm qua
-  2. items chứa field === "status"
-CHỈ những issue có ÍT NHẤT 1 status transition hôm qua mới được tính vào:
-  - TỔNG QUAN (đếm theo status cuối cùng sau transition cuối hôm qua)
-  - THEO NGƯỜI (đếm theo status)
-  - CHI TIẾT DONE / RESOLVED / TESTING / IN PROGRESS
-Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có status transition → KHÔNG đưa vào các section trên.
+Duyệt changelog.histories, lọc entries có created trong ngày hôm qua VÀ items chứa field === "status".
+CHỈ những issue có ÍT NHẤT 1 status transition hôm qua mới được tính vào báo cáo status.
+Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có status transition → KHÔNG đưa vào.
 
 NHÓM B - TẤT CẢ ISSUES UPDATED HÔM QUA:
-Toàn bộ kết quả JQL (bất kỳ thay đổi nào) → dùng để xác định người hoạt động ở BƯỚC 3.
+Toàn bộ kết quả JQL → dùng để xác định người hoạt động.
 
-BƯỚC 2.6 - PHÂN TÍCH BUGS TỪ CHANGELOG:
-Từ changelog của các issue NHÓM A, lọc các thay đổi status trong ngày hôm qua:
-1. Lọc items có field === "status"
-2. Lọc items có created trong ngày hôm qua
+BƯỚC 3 - PHÂN TÍCH BUGS TỪ CHANGELOG (NHÓM A):
+Lọc status transitions trong ngày hôm qua:
+- QC Reject: Testing → Resolved/In Progress/To Do
+- Reopen: Testing → Reopened HOẶC Resolved/Done → Reopened/In Progress/To Do
+- Bug Fixed: In Progress → Resolved (issue type = Bug)
+- bugs_found = QC Reject + Reopen
+- bugs_fixed = Bug type chuyển sang Resolved/Done
 
-PHÂN LOẠI BUGS:
-| Pattern | Loại | Giải thích |
-|---------|------|------------|
-| Testing → Resolved/In Progress/To Do | QC Reject | QC phát hiện bug, trả về work state (KHÔNG phải Reopened) |
-| Testing → Reopened | Reopen | QC phát hiện bug, mở lại issue |
-| Resolved/Done → Reopened/In Progress/To Do | Reopen | Bug được mở lại từ trạng thái hoàn thành |
-| In Progress → Resolved (issue type = Bug) | Bug Fixed | Dev fix xong bug |
+BƯỚC 4 - LẤY TEAM MEMBERS:
+GET /rest/api/2/user/assignable/search?project=${MAIN_PROJECT}&maxResults=100
+Exclude: ${excludeList}
+So sánh với assignees NHÓM B → xác định người không hoạt động.
 
-ĐẾM:
-- bugs_found = số QC Reject + số Reopen trong ngày
-- bugs_fixed = số Bug type chuyển sang Resolved/Done trong ngày
-
-BƯỚC 3 - XÁC ĐỊNH NGƯỜI KHÔNG HOẠT ĐỘNG:
-So sánh team members với assignees từ NHÓM B (tất cả issues updated hôm qua, bất kể loại thay đổi) → list người không có task nào
-
-BẮT BUỘC:
+QUY TẮC OUTPUT:
 1. Output BẮT ĐẦU NGAY bằng 📊 - TUYỆT ĐỐI KHÔNG có text nào trước đó
-2. KHÔNG viết câu mở đầu như: "Tôi đã có dữ liệu", "Bây giờ tôi sẽ", "Dựa trên", "Tổng hợp", "phân tích và tạo báo cáo", hay bất kỳ giải thích/narration nào
-3. KHÔNG dùng markdown ** hoặc __ - CHỈ dùng HTML <b></b>
-4. KHÔNG dùng table markdown | hoặc ---
-5. CHỈ output báo cáo theo FORMAT bên dưới, KHÔNG có bất kỳ text nào khác
+2. KHÔNG viết phân tích, giải thích, narration, thinking. VD: "Tôi đã có dữ liệu", "Phân tích:", "Let me analyze" → CẤM
+3. KHÔNG dùng markdown (**, __, \`\`\`, |, ---). CHỈ dùng HTML <b></b>
+4. KHÔNG thêm section nào ngoài FORMAT. LUÔN giữ tất cả sections kể cả khi = 0
+5. Nếu không có bugs → hiển thị "• Không có bugs trong ngày"
 
-FORMAT (copy chính xác cấu trúc này):
+FORMAT:
 
-📊 <b>BÁO CÁO JIRA - [ngày hôm qua]</b>
+📊 <b>BÁO CÁO JIRA - [ngày hôm qua DD/MM/YYYY] ([thứ trong tuần])</b>
 
-<b>TỔNG QUAN</b>
+<b>📋 STATUS HIỆN TẠI</b> (NHÓM A - status cuối cùng sau transition cuối hôm qua)
 ✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
+
+<b>📈 TRANSITIONS TRONG NGÀY</b> (đếm mỗi lần chuyển status, 1 issue có thể đếm nhiều lần)
+→ Done: X | → Resolved: X | → Testing: X | → In Progress: X | → Reopened: X
+
+<b>👥 THÀNH VIÊN</b>
+• Hoạt động: Tên1 (✅X 📋X 🧪X 🔄X), Tên2 (✅X 📋X 🧪X 🔄X)
+• 😴 Không hoạt động: Tên3, Tên4
+(Hoạt động = có issue updated hôm qua trong NHÓM B. Số liệu status = tính theo NHÓM A, status cuối cùng. LUÔN hiển thị đủ 4 cột kể cả = 0)
 
 <b>🐛 BUG SUMMARY</b>
 • Phát hiện: X (QC reject: Y, Reopen: Z)
 • Đã fix: X
 • Chi tiết:
-  - KEY: QC Reject (Author, HH:mm)
-  - KEY: Reopen (Author, HH:mm)
-  - KEY: Bug Fixed (Author, HH:mm)
-(hoặc "Không có bugs trong ngày" nếu không có)
+  - KEY: Loại (Author, HH:mm) — fromStatus → toStatus
+(hoặc "• Không có bugs trong ngày")
 
-<b>THEO NGƯỜI</b>
-👤 Tên: ✅X 📋X 🧪X 🔄X
-
-<b>CHI TIẾT DONE</b>
+<b>✅ CHI TIẾT DONE</b>
 • KEY: Mô tả (Assignee)
+(hoặc "• Không có")
 
-<b>CHI TIẾT RESOLVED</b> (Dev xong, chờ QC)
+<b>📋 CHI TIẾT RESOLVED</b>
 • KEY: Mô tả (Assignee)
+(hoặc "• Không có")
 
-<b>CHI TIẾT TESTING</b>
+<b>🧪 CHI TIẾT TESTING</b>
 • KEY: Mô tả (Assignee)
+(hoặc "• Không có")
 
-<b>CHI TIẾT IN PROGRESS</b>
+<b>🔄 CHI TIẾT IN PROGRESS</b>
 • KEY: Mô tả (Assignee)
-
-<b>GHI CHÚ</b>
-• 😴 Không hoạt động: Tên1, Tên2 (từ BƯỚC 3 - những người trong team nhưng không có task hôm nay)
-• Ghi chú khác nếu có
-
-LƯU Ý: Nếu changelog trống hoặc không có, bỏ qua section BUG SUMMARY.`;
+(hoặc "• Không có")`;
 
 function runClaudeCode(prompt) {
   return new Promise((resolve, reject) => {
@@ -227,6 +201,14 @@ async function sendTelegramMessage(text, chatId, threadId = null) {
   }
 }
 
+// Strip text trước 📊 (Claude có thể output analysis/thinking trước báo cáo)
+// Chuyển markdown bold sang HTML bold (safety net cho Telegram parse_mode=HTML)
+function sanitizeForTelegram(text) {
+  const reportStart = text.indexOf("📊");
+  if (reportStart > 0) text = text.substring(reportStart);
+  return text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+}
+
 function splitMessage(text, maxLength) {
   // Nếu text ngắn, trả về nguyên
   if (text.length <= maxLength) {
@@ -254,7 +236,8 @@ function splitMessage(text, maxLength) {
 async function main() {
   try {
     console.log("🤖 Running Claude Code with skills...");
-    const response = await runClaudeCode(DAILY_PROMPT);
+    const rawResponse = await runClaudeCode(DAILY_PROMPT);
+    const response = sanitizeForTelegram(rawResponse);
 
     // Success → send to group thread
     console.log("📤 Sending to Telegram Group...");
