@@ -97,7 +97,11 @@ FORMAT:
 📊 <b>BÁO CÁO JIRA - [ngày hôm qua DD/MM/YYYY] ([thứ trong tuần])</b>
 
 <b>📋 STATUS HIỆN TẠI</b>
-✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X | 🔁 Reopened: X
+✅ Done: X
+📋 Resolved: X
+🧪 Testing: X
+🔄 In Progress: X
+🔁 Reopened: X
 
 <b>📈 THAY ĐỔI TRONG NGÀY</b>
 → Done: X
