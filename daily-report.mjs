@@ -97,9 +97,11 @@ FORMAT:
 → Done: X | → Resolved: X | → Testing: X | → In Progress: X | → Reopened: X
 
 <b>👥 THÀNH VIÊN</b>
-• Hoạt động: Tên1 (✅X 📋X 🧪X 🔄X), Tên2 (✅X 📋X 🧪X 🔄X)
-• 😴 Không hoạt động: Tên3, Tên4
-(Hoạt động = có issue updated hôm qua trong NHÓM B. Số liệu status = tính theo NHÓM A, status cuối cùng. LUÔN hiển thị đủ 4 cột kể cả = 0)
+👤 Tên1: ✅X 📋X 🧪X 🔄X
+👤 Tên2: ✅X 📋X 🧪X 🔄X
+😴 Tên3
+😴 Tên4
+(Mỗi người 1 dòng. 👤 = hoạt động + số liệu NHÓM A status cuối. 😴 = không hoạt động. LUÔN hiển thị đủ 4 cột kể cả = 0)
 
 <b>🐛 BUG SUMMARY</b>
 • Phát hiện: X (QC reject: Y, Reopen: Z)
