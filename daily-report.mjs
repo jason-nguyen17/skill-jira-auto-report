@@ -86,13 +86,14 @@ QUY TẮC OUTPUT:
 3. KHÔNG dùng markdown (**, __, \`\`\`, |, ---). CHỈ dùng HTML <b></b>
 4. KHÔNG thêm section nào ngoài FORMAT. LUÔN giữ tất cả sections kể cả khi = 0
 5. Nếu không có bugs → hiển thị "• Không có bugs trong ngày"
+6. KHÔNG lặp lại section nào. Mỗi section CHỈ xuất hiện ĐÚNG 1 LẦN
 
 FORMAT:
 
 📊 <b>BÁO CÁO JIRA - [ngày hôm qua DD/MM/YYYY] ([thứ trong tuần])</b>
 
 <b>📋 STATUS HIỆN TẠI</b>
-✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X | 🔁 Reopened: X | 🐛 Bug: X
+✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X | 🔁 Reopened: X
 
 <b>📈 THAY ĐỔI TRONG NGÀY</b>
 → Done: X
