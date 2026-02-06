@@ -69,8 +69,24 @@ POST /rest/api/2/search
   "expand": ["changelog"]
 }
 
-BƯỚC 2.5 - PHÂN TÍCH BUGS TỪ CHANGELOG:
-Từ changelog của mỗi issue, lọc các thay đổi status trong ngày hôm qua:
+BƯỚC 2.5 - PHÂN LOẠI ISSUES:
+Từ kết quả JQL, chia thành 2 nhóm:
+
+NHÓM A - ISSUES CÓ STATUS TRANSITION HÔM QUA:
+Duyệt changelog.histories của mỗi issue, lọc entries có:
+  1. created trong ngày hôm qua
+  2. items chứa field === "status"
+CHỈ những issue có ÍT NHẤT 1 status transition hôm qua mới được tính vào:
+  - TỔNG QUAN (đếm theo status cuối cùng sau transition cuối hôm qua)
+  - THEO NGƯỜI (đếm theo status)
+  - CHI TIẾT DONE / RESOLVED / TESTING / IN PROGRESS
+Issue chỉ có thay đổi khác (comment, link, description...) mà KHÔNG có status transition → KHÔNG đưa vào các section trên.
+
+NHÓM B - TẤT CẢ ISSUES UPDATED HÔM QUA:
+Toàn bộ kết quả JQL (bất kỳ thay đổi nào) → dùng để xác định người hoạt động ở BƯỚC 3.
+
+BƯỚC 2.6 - PHÂN TÍCH BUGS TỪ CHANGELOG:
+Từ changelog của các issue NHÓM A, lọc các thay đổi status trong ngày hôm qua:
 1. Lọc items có field === "status"
 2. Lọc items có created trong ngày hôm qua
 
@@ -87,7 +103,7 @@ PHÂN LOẠI BUGS:
 - bugs_fixed = số Bug type chuyển sang Resolved/Done trong ngày
 
 BƯỚC 3 - XÁC ĐỊNH NGƯỜI KHÔNG HOẠT ĐỘNG:
-So sánh team members với assignees có task hôm qua → list người không có task nào
+So sánh team members với assignees từ NHÓM B (tất cả issues updated hôm qua, bất kể loại thay đổi) → list người không có task nào
 
 BẮT BUỘC:
 1. Output BẮT ĐẦU NGAY bằng 📊 - TUYỆT ĐỐI KHÔNG có text nào trước đó
