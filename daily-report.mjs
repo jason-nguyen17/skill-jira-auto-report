@@ -93,8 +93,12 @@ FORMAT:
 <b>📋 STATUS HIỆN TẠI</b> (NHÓM A - status cuối cùng sau transition cuối hôm qua)
 ✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
 
-<b>📈 TRANSITIONS TRONG NGÀY</b> (đếm mỗi lần chuyển status, 1 issue có thể đếm nhiều lần)
-→ Done: X | → Resolved: X | → Testing: X | → In Progress: X | → Reopened: X
+<b>📈 TRANSITIONS TRONG NGÀY</b>
+→ Done: X
+→ Resolved: X
+→ Testing: X
+→ In Progress: X
+→ Reopened: X
 
 <b>👥 THÀNH VIÊN</b>
 👤 Tên1: ✅X 📋X 🧪X 🔄X
