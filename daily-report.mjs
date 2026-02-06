@@ -90,10 +90,10 @@ FORMAT:
 
 📊 <b>BÁO CÁO JIRA - [ngày hôm qua DD/MM/YYYY] ([thứ trong tuần])</b>
 
-<b>📋 STATUS HIỆN TẠI</b> (NHÓM A - status cuối cùng sau transition cuối hôm qua)
-✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X
+<b>📋 STATUS HIỆN TẠI</b>
+✅ Done: X | 📋 Resolved: X | 🧪 Testing: X | 🔄 In Progress: X | 🔁 Reopened: X | 🐛 Bug: X
 
-<b>📈 TRANSITIONS TRONG NGÀY</b>
+<b>📈 THAY ĐỔI TRONG NGÀY</b>
 → Done: X
 → Resolved: X
 → Testing: X
